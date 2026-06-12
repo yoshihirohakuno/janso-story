@@ -7,6 +7,7 @@ interface GameStore {
   cheatMode: boolean;
   isGameStarted: boolean;
   gameLogs: string[];
+  announcement: { type: string; playerName: string } | null;
   
   // Actions
   setupNewGame: (names?: string[], autos?: boolean[]) => void;
@@ -24,6 +25,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   cheatMode: false,
   isGameStarted: false,
   gameLogs: [],
+  announcement: null,
 
   setupNewGame: (names, autos) => {
     const initialState = initGame(names, autos);
@@ -67,6 +69,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     const nextState = discardTile(state, state.activePlayerIndex, tileId, isRiichi);
     
+    if (isRiichi) {
+      set({ announcement: { type: 'riichi', playerName: player.name } });
+      setTimeout(() => {
+        set({ announcement: null });
+      }, 1000);
+    }
+
     set({
       gameState: nextState,
       gameLogs: [...get().gameLogs, actionLog],
@@ -80,6 +89,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const state = get().gameState;
     const player = state.players[playerIndex];
     let callLog = '';
+    
+    if (type !== 'pass') {
+      set({ announcement: { type, playerName: player.name } });
+      setTimeout(() => {
+        set({ announcement: null });
+      }, 1000);
+    }
     
     if (type === 'ron') {
       callLog = `🔔 ${player.name} がロンを宣言！`;

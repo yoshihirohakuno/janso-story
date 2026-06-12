@@ -1,9 +1,47 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useGameStore } from '../../engine/store';
 import { TileView } from './TileView';
 import { WIND_NAMES } from '../../engine/constants';
 import { sortTiles } from '../../engine/constants';
 import { Tile, Meld } from '../../engine/types';
+
+interface ScoreTickerProps {
+  startScore: number;
+  endScore: number;
+  change: number;
+}
+
+const ScoreTicker: React.FC<ScoreTickerProps> = ({ startScore, endScore, change }) => {
+  const [currentScore, setCurrentScore] = useState(startScore);
+
+  useEffect(() => {
+    setCurrentScore(startScore);
+    if (change === 0) return;
+
+    const duration = 1200; // 1.2 seconds animation
+    const startTime = performance.now();
+    let animationFrameId: number;
+
+    const animate = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const easeProgress = progress * (2 - progress); // Ease out quadratic
+      const val = Math.round(startScore + change * easeProgress);
+      setCurrentScore(val);
+
+      if (progress < 1) {
+        animationFrameId = requestAnimationFrame(animate);
+      } else {
+        setCurrentScore(endScore);
+      }
+    };
+
+    animationFrameId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [startScore, endScore, change]);
+
+  return <>{currentScore.toLocaleString()} 点</>;
+};
 
 export const RoundOverModal: React.FC = () => {
   const { gameState, confirmRoundEnd, setupNewGame } = useGameStore();
@@ -209,10 +247,16 @@ export const RoundOverModal: React.FC = () => {
                     </div>
                     <div className="cell-scores">
                       <span className="old-score">{(player.score - change).toLocaleString()} 点</span>
-                      <span className={`score-diff ${change > 0 ? 'plus' : change < 0 ? 'minus' : ''}`}>
+                      <span className={`score-diff ${change > 0 ? 'plus' : change < 0 ? 'minus' : ''} ${change !== 0 ? 'pulse-glow' : ''}`}>
                         {change > 0 ? `+${change.toLocaleString()}` : change === 0 ? '±0' : change.toLocaleString()}
                       </span>
-                      <span className="new-score">{player.score.toLocaleString()} 点</span>
+                      <span className="new-score">
+                        <ScoreTicker 
+                          startScore={player.score - change}
+                          endScore={player.score}
+                          change={change}
+                        />
+                      </span>
                     </div>
                   </div>
                 );

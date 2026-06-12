@@ -5,7 +5,7 @@ import { ScoreBoard } from './ui/components/ScoreBoard';
 import './ui/index.css';
 
 export const App: React.FC = () => {
-  const { isGameStarted, setupNewGame } = useGameStore();
+  const { isGameStarted, setupNewGame, announcement } = useGameStore();
 
   // Lobby states for name customization
   const [names, setNames] = useState<string[]>(['あなた (自分)', '雀士AI 桐生', '雀士AI 冴島', '雀士AI 真島']);
@@ -94,12 +94,38 @@ export const App: React.FC = () => {
     );
   }
 
+  // Helper to translate action type to visual text
+  const getAnnouncementText = (type: string): string => {
+    switch (type) {
+      case 'riichi': return '立直 (REACH)';
+      case 'chi': return 'チー (CHI)';
+      case 'pon': return 'ポン (PON)';
+      case 'kan':
+      case 'ankan':
+      case 'kakan':
+        return 'カン (KAN)';
+      case 'ron': return 'ロン (RON)';
+      case 'tsumo': return 'ツモ (TSUMO)';
+      default: return type.toUpperCase();
+    }
+  };
+
   // Active Game View
   return (
     <div className="app-game-layout">
       {/* Game Table Grid */}
       <div className="table-viewport">
         <MahjongTable />
+        
+        {/* Full-screen neon announcement overlay */}
+        {announcement && (
+          <div className={`action-announcement-overlay type-${announcement.type}`}>
+            <div className="announcement-content">
+              <span className="announcement-player">{announcement.playerName}</span>
+              <h2 className="announcement-text">{getAnnouncementText(announcement.type)}</h2>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Sidebar Controls and logs */}
