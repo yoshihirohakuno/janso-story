@@ -23,6 +23,10 @@ export const ActionButtons: React.FC = () => {
     (window as any).riichiPending = false;
   }, [activeCalls]);
 
+  if (turnPhase === 'agari' || turnPhase === 'ryukyoku' || turnPhase === 'game_over') {
+    return null;
+  }
+
   if (myCalls.length === 0 && !isRiichiActivating) {
     return null;
   }

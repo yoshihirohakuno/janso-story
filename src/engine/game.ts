@@ -597,6 +597,7 @@ function updateFuritenStates(state: GameState) {
 function handleRonWin(state: GameState, winnerIndex: number): GameState {
   const next = { ...state };
   next.turnPhase = 'agari';
+  next.activeCalls = []; // Clear all active calls immediately
 
   const winner = next.players[winnerIndex];
   const winningTile = next.lastDiscard!;
@@ -689,6 +690,7 @@ function handleRonWin(state: GameState, winnerIndex: number): GameState {
 function handleTsumoWin(state: GameState, winnerIndex: number): GameState {
   const next = { ...state };
   next.turnPhase = 'agari';
+  next.activeCalls = []; // Clear all active calls immediately
 
   const winner = next.players[winnerIndex];
   const winningTile = next.drawnTile!;

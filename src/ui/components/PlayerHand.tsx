@@ -11,13 +11,22 @@ interface PlayerHandProps {
 
 export const PlayerHand: React.FC<PlayerHandProps> = ({ player, playerIndex, isActive }) => {
   const { gameState, cheatMode, discard, selectCall } = useGameStore();
-  const { activePlayerIndex, turnPhase, drawnTile, activeCalls } = gameState;
+  const { activePlayerIndex, turnPhase, drawnTile, activeCalls, winnerIndices, lastDiscard } = gameState;
 
   const isHuman = playerIndex === 0;
   const isDiscardPhase = isActive && (turnPhase === 'discard' || turnPhase === 'kan_draw');
 
   // Find if player has a Riichi option active or is already in Riichi
   const isRiichiDeclared = player.isRiichi || player.isDoubleRiichi;
+
+  // Determine if this player is the winner of the round
+  const isWinner = winnerIndices?.includes(playerIndex) || false;
+  const winnerResult = gameState.yakuResults?.find(res => res.playerIndex === playerIndex);
+  const isTsumoWin = winnerResult?.isTsumo || false;
+  const isRonWin = winnerResult ? !winnerResult.isTsumo : false;
+
+  // Reveal player hands when they win, or if they are human / cheat mode is on
+  const shouldReveal = isHuman || cheatMode || ((turnPhase === 'agari' || turnPhase === 'game_over') && isWinner);
 
   // Separate the drawn tile from the rest of the hand (rendered on the right)
   let handTiles = [...player.hand];
@@ -30,6 +39,11 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({ player, playerIndex, isA
       drawnTileInHand = handTiles[drawnIdx];
       handTiles.splice(drawnIdx, 1);
     }
+  }
+
+  // If Ron win: append the winning tile as the drawn tile for rendering
+  if (turnPhase === 'agari' && isWinner && isRonWin && lastDiscard) {
+    drawnTileInHand = lastDiscard;
   }
 
   // Handle tile discard click
@@ -160,7 +174,7 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({ player, playerIndex, isA
             return (
               <TileView
                 key={tile.id}
-                tile={isHuman || cheatMode ? tile : undefined}
+                tile={shouldReveal ? tile : undefined}
                 selectable={isClickable}
                 onClick={() => handleDiscardClick(tile.id)}
               />
@@ -172,9 +186,10 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({ player, playerIndex, isA
         {drawnTileInHand && (
           <div className="drawn-tile-gap">
             <TileView
-              tile={isHuman || cheatMode ? drawnTileInHand : undefined}
+              tile={shouldReveal ? drawnTileInHand : undefined}
               selectable={isHuman && isDiscardPhase}
               onClick={() => handleDiscardClick(drawnTileInHand!.id)}
+              className={turnPhase === 'agari' && isWinner ? (isTsumoWin ? 'tsumo-won-glow' : 'ron-won-glow') : ''}
             />
           </div>
         )}

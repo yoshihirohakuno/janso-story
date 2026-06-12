@@ -47,7 +47,24 @@ export const RoundOverModal: React.FC = () => {
   const { gameState, confirmRoundEnd, setupNewGame } = useGameStore();
   const { turnPhase, winnerIndices, yakuResults, scoreChanges, players, wind, roundNumber, honba, doraIndicators, uraDoraIndicators } = gameState;
 
-  if (turnPhase !== 'agari' && turnPhase !== 'ryukyoku' && turnPhase !== 'game_over') {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (turnPhase === 'agari' || turnPhase === 'ryukyoku') {
+      // Delay showing the results modal by 1.5 seconds to let the neon action announcements finish on screen
+      setVisible(false);
+      const timer = setTimeout(() => {
+        setVisible(true);
+      }, 1500);
+      return () => clearTimeout(timer);
+    } else if (turnPhase === 'game_over') {
+      setVisible(true);
+    } else {
+      setVisible(false);
+    }
+  }, [turnPhase]);
+
+  if (!visible) {
     return null;
   }
 

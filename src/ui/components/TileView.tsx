@@ -7,6 +7,7 @@ interface TileViewProps {
   isGrayed?: boolean; // For claimed discards
   onClick?: () => void;
   selectable?: boolean;
+  className?: string;
 }
 
 // Map from internal tile representation to official Unicode Mahjong characters with Emoji Selector (\uFE0F)
@@ -48,12 +49,13 @@ export const TileView: React.FC<TileViewProps> = ({
   isGrayed = false,
   onClick,
   selectable = false,
+  className = '',
 }) => {
   if (!tile) {
     // Render Face-Down Tile (Back of tile)
     return (
       <div 
-        className={`mahjong-tile tile-back ${isSideways ? 'sideways' : ''}`}
+        className={`mahjong-tile tile-back ${isSideways ? 'sideways' : ''} ${className}`}
         title="裏向き牌"
       >
         <div className="tile-back-pattern" />
@@ -77,7 +79,7 @@ export const TileView: React.FC<TileViewProps> = ({
     <div
       className={`mahjong-tile tile-face ${tileClass} ${isSideways ? 'sideways' : ''} ${
         isGrayed ? 'grayed' : ''
-      } ${selectable ? 'selectable' : ''}`}
+      } ${selectable ? 'selectable' : ''} ${className}`}
       onClick={selectable && onClick ? onClick : undefined}
       title={`${isRed ? '赤' : ''}${value}${suit}`}
     >
