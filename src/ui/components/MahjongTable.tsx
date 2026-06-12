@@ -5,6 +5,7 @@ import { DiscardPond } from './DiscardPond';
 import { GameInfo } from './GameInfo';
 import { ActionButtons } from './ActionButtons';
 import { RoundOverModal } from './RoundOverModal';
+import { WIND_NAMES } from '../../engine/constants';
 
 export const MahjongTable: React.FC = () => {
   const { gameState } = useGameStore();
@@ -34,7 +35,7 @@ export const MahjongTable: React.FC = () => {
               key={`badge-${player.id}`} 
               className={`table-player-badge seat-pos-${idx} ${isTurn ? 'is-active-turn' : ''} ${isDealer ? 'is-dealer' : ''} ${isRiichi ? 'is-riichi' : ''}`}
             >
-              <div className="badge-wind">{player.seatWind}</div>
+              <div className="badge-wind">{WIND_NAMES[player.seatWind]}</div>
               <div className="badge-details">
                 <span className="badge-name">
                   {player.name}

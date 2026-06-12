@@ -164,6 +164,21 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({ player, playerIndex, isA
 
   return (
     <div className={`player-hand-container player-pos-${playerIndex} ${isActive ? 'active-turn' : ''}`}>
+      {turnPhase === 'agari' && winnerResult && (
+        <div className="table-win-yaku-banner glassmorphic">
+          <div className="banner-yaku-title">
+            {winnerResult.isTsumo ? 'ツモ' : 'ロン'}! {winnerResult.points.toLocaleString()} 点
+          </div>
+          <div className="banner-yaku-details">
+            {winnerResult.fu} 符 {winnerResult.han + winnerResult.doraCount + winnerResult.akaDoraCount + winnerResult.uraDoraCount} 翻
+          </div>
+          <div className="banner-yaku-list">
+            {winnerResult.yakuList.slice(0, 3).join(' ・ ')}
+            {winnerResult.yakuList.length > 3 ? ' ...' : ''}
+          </div>
+        </div>
+      )}
+
       {/* Hand layout */}
       <div className="hand-tiles-wrapper">
         {/* Main Hand */}

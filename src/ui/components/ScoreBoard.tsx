@@ -54,7 +54,7 @@ export const ScoreBoard: React.FC = () => {
                 className={`player-score-card ${isTurn ? 'is-turn' : ''} ${isDealer ? 'is-dealer' : ''}`}
               >
                 <div className="player-meta">
-                  <span className={`seat-wind wind-${player.seatWind}`}>{player.seatWind}</span>
+                  <span className={`seat-wind wind-${player.seatWind}`}>{WIND_NAMES[player.seatWind]}</span>
                   <span className="player-name">
                     {player.name}
                     {player.isAuto && <span className="bot-tag">AI</span>}

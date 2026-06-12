@@ -140,7 +140,7 @@ export const RoundOverModal: React.FC = () => {
                 <div key={wIdx} className="winner-details-card glassmorphic">
                   <div className="winner-title">
                     <span className="win-badge">{winLabel}</span>
-                    <span className="winner-name-label">{winner.name} ({winner.seatWind}家)</span>
+                    <span className="winner-name-label">{winner.name} ({WIND_NAMES[winner.seatWind]}家)</span>
                   </div>
 
                   {/* Winning hand display */}
@@ -233,7 +233,7 @@ export const RoundOverModal: React.FC = () => {
                 return (
                   <div key={player.id} className="player-draw-status">
                     <div className="player-meta-box">
-                      <span className={`seat-wind wind-${player.seatWind}`}>{player.seatWind}</span>
+                      <span className={`seat-wind wind-${player.seatWind}`}>{WIND_NAMES[player.seatWind]}</span>
                       <span className="player-name-label">{player.name}</span>
                     </div>
                     <div className="tenpai-badge-container">
@@ -265,7 +265,7 @@ export const RoundOverModal: React.FC = () => {
                 return (
                   <div key={player.id} className="score-change-cell">
                     <div className="cell-player-meta">
-                      <span className={`seat-wind wind-${player.seatWind}`}>{player.seatWind}</span>
+                      <span className={`seat-wind wind-${player.seatWind}`}>{WIND_NAMES[player.seatWind]}</span>
                       <span className="cell-player-name">{player.name}</span>
                     </div>
                     <div className="cell-scores">
