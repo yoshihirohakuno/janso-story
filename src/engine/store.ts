@@ -145,7 +145,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
     
     let logMsg = '';
     if (nextState.turnPhase === 'game_over') {
-      logMsg = '対局終了しました。最終結果を表示します。';
+      const tobiPlayer = state.players.find(p => p.score < 0);
+      if (tobiPlayer) {
+        logMsg = `⚠️ ${tobiPlayer.name} が 0点未満（トビ）となったため、対局終了となりました。最終結果を表示します。`;
+      } else {
+        logMsg = '対局終了しました。最終結果を表示します。';
+      }
     } else {
       const roundName = `${nextState.wind === 'E' ? '東' : '南'}${nextState.roundNumber}局`;
       logMsg = `${roundName} ${nextState.honba}本場 配牌を行いました。`;

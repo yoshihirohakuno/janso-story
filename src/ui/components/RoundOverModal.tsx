@@ -60,7 +60,13 @@ export const RoundOverModal: React.FC = () => {
   };
 
   const getTitle = () => {
-    if (turnPhase === 'game_over') return '🌟 対局終了 (最終結果) 🌟';
+    if (turnPhase === 'game_over') {
+      const tobiPlayer = players.find(p => p.score < 0);
+      if (tobiPlayer) {
+        return `⚠️ 対局終了 (${tobiPlayer.name} のトビ終了) ⚠️`;
+      }
+      return '🌟 対局終了 (最終結果) 🌟';
+    }
     if (turnPhase === 'ryukyoku') return '流局 (Exhaustive Draw)';
     
     // Check if double ron occurred

@@ -3,6 +3,7 @@ import { calculateShanten } from '../shanten';
 import { evaluateHand, EvaluationParams } from '../yaku';
 import { calculatePoints } from '../scoring';
 import { Tile } from '../types';
+import { initGame, advanceRound } from '../game';
 
 // Helper to make a Tile list from a simplified string notation
 // e.g. "123m 456p 789s E E E S S"
@@ -248,5 +249,59 @@ describe('Mahjong Scoring Distributor', () => {
 
     expect(pointsData.points).toBe(8000);
     expect(pointsData.baseScoreName).toBe('満貫');
+  });
+});
+
+describe('Mahjong Round Advancement', () => {
+  it('should advance from East 1 to East 2 when child wins', () => {
+    const state = initGame();
+    // Simulate game state just finished with player 1 (child) winning
+    state.turnPhase = 'agari';
+    state.winnerIndices = [1];
+    state.dealerIndex = 0;
+    state.wind = 'E';
+    state.roundNumber = 1;
+    state.honba = 0;
+
+    const nextState = advanceRound(state);
+    expect(nextState.wind).toBe('E');
+    expect(nextState.roundNumber).toBe(2);
+    expect(nextState.dealerIndex).toBe(1);
+  });
+
+  it('should repeat East 1 (renchan) when dealer wins', () => {
+    const state = initGame();
+    // Simulate dealer (player 0) winning
+    state.turnPhase = 'agari';
+    state.winnerIndices = [0];
+    state.dealerIndex = 0;
+    state.wind = 'E';
+    state.roundNumber = 1;
+    state.honba = 0;
+
+    const nextState = advanceRound(state);
+    expect(nextState.wind).toBe('E');
+    expect(nextState.roundNumber).toBe(1);
+    expect(nextState.honba).toBe(1);
+    expect(nextState.dealerIndex).toBe(0);
+  });
+
+  it('should advance from East 1 to East 2 on Ryukyoku when dealer is not Tenpai', () => {
+    const state = initGame();
+    state.turnPhase = 'ryukyoku';
+    state.winnerIndices = [];
+    state.dealerIndex = 0;
+    state.wind = 'E';
+    state.roundNumber = 1;
+    state.honba = 0;
+
+    // Simulate dealer is not Tenpai (shanten > 0)
+    state.players[0].hand = makeTiles('12m 456p 789s E E E S'); // 10 tiles, not Tenpai
+    state.players[0].melds = [];
+
+    const nextState = advanceRound(state);
+    expect(nextState.wind).toBe('E');
+    expect(nextState.roundNumber).toBe(2);
+    expect(nextState.dealerIndex).toBe(1);
   });
 });
