@@ -604,10 +604,10 @@ input:checked + .slider:before {
 
 /* Player 1 (Opponent 1) - Right Edge (Rotated) */
 .player-pos-1 {
-  right: 40px; /* Offset inward slightly by H/2 (25px) to maintain exact 15px edge gap when center rotated */
+  right: 15px;
   top: 50%;
-  transform: translateY(-50%) rotate(-90deg);
-  transform-origin: center;
+  transform: translateY(-50%) translateX(50%) rotate(-90deg);
+  transform-origin: right center;
 }
 
 /* Player 2 (Opponent 2) - Top Edge (Rotated) */
@@ -619,10 +619,10 @@ input:checked + .slider:before {
 
 /* Player 3 (Opponent 3) - Left Edge (Rotated) */
 .player-pos-3 {
-  left: 40px; /* Offset inward slightly by H/2 (25px) to maintain exact 15px edge gap when center rotated */
+  left: 15px;
   top: 50%;
-  transform: translateY(-50%) rotate(90deg);
-  transform-origin: center;
+  transform: translateY(-50%) translateX(-50%) rotate(90deg);
+  transform-origin: left center;
 }
 
 /* ==========================================
