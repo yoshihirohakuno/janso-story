@@ -10,6 +10,7 @@ export const App: React.FC = () => {
   // Lobby states for name customization
   const [names, setNames] = useState<string[]>(['あなた (自分)', '雀士AI 桐生', '雀士AI 冴島', '雀士AI 真島']);
   const [autos, setAutos] = useState<boolean[]>([false, true, true, true]); // seat 0 is human, others bot
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleNameChange = (idx: number, val: string) => {
     const updated = [...names];
@@ -112,10 +113,19 @@ export const App: React.FC = () => {
 
   // Active Game View
   return (
-    <div className="app-game-layout">
+    <div className={`app-game-layout ${sidebarOpen ? 'sidebar-active' : 'sidebar-collapsed'}`}>
       {/* Game Table Grid */}
       <div className="table-viewport">
         <MahjongTable />
+        
+        {/* Toggle Sidebar Button */}
+        <button 
+          className="sidebar-toggle-btn"
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          title={sidebarOpen ? "ログ・スコアを非表示" : "ログ・スコアを表示"}
+        >
+          {sidebarOpen ? '✕' : '📋'}
+        </button>
         
         {/* Full-screen neon announcement overlay */}
         {announcement && (

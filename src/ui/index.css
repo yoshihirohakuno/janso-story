@@ -1408,7 +1408,7 @@ input:checked + .slider:before {
 
 
 /* ==========================================
-   SCOREBOARD / CONTROL SIDEBAR
+   SCOREBOARD / CONTROL SIDEBAR (COLLAPSIBLE DRAWER)
    ========================================== */
 .scoreboard-sidebar {
   width: 380px;
@@ -1418,7 +1418,186 @@ input:checked + .slider:before {
   flex-direction: column;
   padding: 25px;
   gap: 20px;
+  transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), 
+              padding 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), 
+              opacity 0.3s ease, 
+              border-color 0.3s ease;
+  flex-shrink: 0;
+  box-sizing: border-box;
 }
+
+.sidebar-collapsed .scoreboard-sidebar {
+  width: 0;
+  padding: 25px 0;
+  padding-left: 0;
+  padding-right: 0;
+  opacity: 0;
+  overflow: hidden;
+  border-left-color: transparent;
+  pointer-events: none;
+}
+
+.sidebar-active .scoreboard-sidebar {
+  width: 380px;
+  opacity: 1;
+}
+
+/* Sidebar Toggle Button */
+.sidebar-toggle-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 85;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 1.25rem;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+
+.sidebar-toggle-btn:hover {
+  background: rgba(0, 255, 200, 0.15);
+  border-color: var(--accent-cyan);
+  transform: scale(1.05);
+}
+
+.sidebar-toggle-btn:active {
+  transform: scale(0.95);
+}
+
+/* Table Player Badge */
+.table-player-badge {
+  position: absolute;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 6px 12px;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.82rem;
+  backdrop-filter: blur(4px);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.table-player-badge.is-active-turn {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 10px rgba(0, 255, 200, 0.3), 0 4px 10px rgba(0, 0, 0, 0.3);
+  background: rgba(0, 255, 200, 0.08);
+}
+
+.table-player-badge.is-dealer {
+  border-color: rgba(255, 51, 102, 0.4);
+}
+
+.badge-wind {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 0.78rem;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.is-dealer .badge-wind {
+  background: var(--accent-red);
+  color: #fff;
+}
+
+.badge-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.badge-name {
+  font-weight: 600;
+  color: #e0e6e3;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 90px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.badge-ai-tag {
+  font-size: 0.65rem;
+  background: #265ca5;
+  color: #fff;
+  padding: 0 4px;
+  border-radius: 2px;
+}
+
+.badge-score {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--accent-yellow);
+}
+
+.badge-status-tag {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 4px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+.badge-status-tag.riichi {
+  background: var(--accent-red);
+  color: #fff;
+  animation: pulse-riichi 1.5s infinite;
+}
+
+.badge-status-tag.furiten {
+  background: #d35400;
+  color: #fff;
+}
+
+/* Badge positions in 4 corners of the table felt board */
+.seat-pos-0 {
+  bottom: 20px;
+  left: 20px;
+}
+.seat-pos-1 {
+  bottom: 20px;
+  right: 20px;
+}
+.seat-pos-2 {
+  top: 20px;
+  right: 20px;
+}
+.seat-pos-3 {
+  top: 20px;
+  left: 20px;
+}
+
+@keyframes pulse-riichi {
+  0%, 100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 8px var(--accent-red);
+  }
+}
+
 
 .sidebar-header {
   border-bottom: 1px solid var(--border-glass);

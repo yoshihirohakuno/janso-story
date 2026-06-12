@@ -24,6 +24,30 @@ export const MahjongTable: React.FC = () => {
         {/* Central Information Board */}
         <GameInfo />
 
+        {/* Sleek Player Info Badges in the 4 corners of the table felt */}
+        {players.map((player, idx) => {
+          const isTurn = idx === activePlayerIndex;
+          const isDealer = player.seatWind === 'E';
+          const isRiichi = player.isRiichi || player.isDoubleRiichi;
+          return (
+            <div 
+              key={`badge-${player.id}`} 
+              className={`table-player-badge seat-pos-${idx} ${isTurn ? 'is-active-turn' : ''} ${isDealer ? 'is-dealer' : ''} ${isRiichi ? 'is-riichi' : ''}`}
+            >
+              <div className="badge-wind">{player.seatWind}</div>
+              <div className="badge-details">
+                <span className="badge-name">
+                  {player.name}
+                  {player.isAuto && <span className="badge-ai-tag">AI</span>}
+                </span>
+                <span className="badge-score">{player.score.toLocaleString()} 点</span>
+              </div>
+              {isRiichi && <span className="badge-status-tag riichi">REACH</span>}
+              {player.isFuriten && <span className="badge-status-tag furiten">振聴</span>}
+            </div>
+          );
+        })}
+
         {/* Ponds (Discards) for each player */}
         {players.map((player, idx) => (
           <DiscardPond
