@@ -604,10 +604,10 @@ input:checked + .slider:before {
 
 /* Player 1 (Opponent 1) - Right Edge (Rotated) */
 .player-pos-1 {
-  right: 15px;
+  right: 40px; /* Offset inward slightly by H/2 (25px) to maintain exact 15px edge gap when center rotated */
   top: 50%;
   transform: translateY(-50%) rotate(-90deg);
-  transform-origin: right center;
+  transform-origin: center;
 }
 
 /* Player 2 (Opponent 2) - Top Edge (Rotated) */
@@ -619,10 +619,10 @@ input:checked + .slider:before {
 
 /* Player 3 (Opponent 3) - Left Edge (Rotated) */
 .player-pos-3 {
-  left: 15px;
+  left: 40px; /* Offset inward slightly by H/2 (25px) to maintain exact 15px edge gap when center rotated */
   top: 50%;
   transform: translateY(-50%) rotate(90deg);
-  transform-origin: left center;
+  transform-origin: center;
 }
 
 /* ==========================================
@@ -784,29 +784,39 @@ input:checked + .slider:before {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
 }
 
 .dora-title {
-  font-size: 0.5rem;
-  color: #89a093;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #ffd700; /* Rich gold color */
+  text-shadow: 0 0 4px rgba(255, 215, 0, 0.3);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
 }
 
 .dora-tiles {
   display: flex;
-  gap: 1.5px;
+  gap: 2.5px;
 }
 
 .dora-tiles .mahjong-tile {
-  width: 18px;
-  height: 25px;
-  border-radius: 2px;
-  font-size: 0.65rem;
+  width: 22px;
+  height: 30px;
+  border-radius: 3px;
+  box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s ease;
 }
+
+/* Make face-up active dora indicator stand out with a beautiful golden border and glow */
+.dora-tiles .mahjong-tile.tile-face {
+  border: 1px solid #ffd700;
+  box-shadow: 0 0 6px rgba(255, 215, 0, 0.5), 1px 1px 3px rgba(0, 0, 0, 0.4);
+}
+
 .dora-tiles .tile-corner-label {
-  font-size: 0.4rem;
+  font-size: 0.45rem;
 }
 
 
