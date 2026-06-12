@@ -321,14 +321,16 @@ input:checked + .slider:before {
    GAMEPLAY VIEWPORT & LAYOUT
    ========================================== */
 .app-game-layout {
-  display: flex;
+  position: relative;
   height: 100vh;
   width: 100vw;
   background-color: var(--bg-dark);
+  overflow: hidden;
 }
 
 .table-viewport {
-  flex-grow: 1;
+  width: 100%;
+  height: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -341,10 +343,10 @@ input:checked + .slider:before {
    MAHJONG TABLE DESIGN
    ========================================== */
 .mahjong-table-area {
-  width: 90vh;
-  height: 90vh;
-  max-width: 780px;
-  max-height: 780px;
+  width: min(92vh, 92vw);
+  height: min(92vh, 92vw);
+  max-width: 860px;
+  max-height: 860px;
   aspect-ratio: 1 / 1;
   border-radius: 36px;
   border: 14px solid var(--table-border);
@@ -1411,34 +1413,33 @@ input:checked + .slider:before {
    SCOREBOARD / CONTROL SIDEBAR (COLLAPSIBLE DRAWER)
    ========================================== */
 .scoreboard-sidebar {
-  width: 380px;
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: 340px;
   height: 100vh;
   border-left: 1px solid var(--border-glass);
   display: flex;
   flex-direction: column;
-  padding: 25px;
-  gap: 20px;
-  transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), 
-              padding 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), 
-              opacity 0.3s ease, 
-              border-color 0.3s ease;
-  flex-shrink: 0;
+  padding: 20px;
+  gap: 16px;
+  background: rgba(10, 20, 16, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  z-index: 100;
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
   box-sizing: border-box;
+  transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s ease;
 }
 
 .sidebar-collapsed .scoreboard-sidebar {
-  width: 0;
-  padding: 25px 0;
-  padding-left: 0;
-  padding-right: 0;
+  transform: translateX(100%);
   opacity: 0;
-  overflow: hidden;
-  border-left-color: transparent;
   pointer-events: none;
 }
 
 .sidebar-active .scoreboard-sidebar {
-  width: 380px;
+  transform: translateX(0);
   opacity: 1;
 }
 
@@ -1447,21 +1448,25 @@ input:checked + .slider:before {
   position: absolute;
   top: 20px;
   right: 20px;
-  z-index: 85;
+  z-index: 110;
   width: 44px;
   height: 44px;
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.65);
   color: #fff;
   font-size: 1.25rem;
   cursor: pointer;
   display: flex;
   justify-content: center;
   align-items: center;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-  transition: all 0.2s ease;
+  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.sidebar-active .sidebar-toggle-btn {
+  right: 360px; /* 340px sidebar width + 20px margin */
 }
 
 .sidebar-toggle-btn:hover {
