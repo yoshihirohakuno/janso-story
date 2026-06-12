@@ -1575,22 +1575,23 @@ input:checked + .slider:before {
   color: #fff;
 }
 
-/* Badge positions safely placed inside the table, avoiding hand tiles */
+/* Badge positions safely placed inside the table, aligned with each seat */
 .seat-pos-0 {
   bottom: 75px;
   left: 25px;
 }
 .seat-pos-1 {
-  bottom: 75px;
-  right: 80px;
+  bottom: 160px; /* Positioned on the right side, clearly belonging to right player (Shimocha) */
+  right: 75px;
 }
 .seat-pos-2 {
   top: 75px;
-  right: 25px;
+  left: 50%; /* Positioned at top-center, clearly belonging to top player (Toimian) */
+  transform: translateX(-50%);
 }
 .seat-pos-3 {
-  top: 75px;
-  left: 80px;
+  top: 160px; /* Positioned on the left side, clearly belonging to left player (Kamicha) */
+  left: 75px;
 }
 
 @keyframes pulse-riichi {
