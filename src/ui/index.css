@@ -1575,22 +1575,22 @@ input:checked + .slider:before {
   color: #fff;
 }
 
-/* Badge positions in 4 corners of the table felt board */
+/* Badge positions safely placed inside the table, avoiding hand tiles */
 .seat-pos-0 {
-  bottom: 20px;
-  left: 20px;
+  bottom: 75px;
+  left: 25px;
 }
 .seat-pos-1 {
-  bottom: 20px;
-  right: 20px;
+  bottom: 75px;
+  right: 80px;
 }
 .seat-pos-2 {
-  top: 20px;
-  right: 20px;
+  top: 75px;
+  right: 25px;
 }
 .seat-pos-3 {
-  top: 20px;
-  left: 20px;
+  top: 75px;
+  left: 80px;
 }
 
 @keyframes pulse-riichi {
