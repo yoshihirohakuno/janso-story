@@ -72,7 +72,10 @@ export interface GameState {
     yakuList: string[];
     han: number;
     fu: number;
-    points: number;
+    points: number;       // Total payout incl. kyoutaku & honba
+    basePoints: number;   // Pure role score (excl. kyoutaku & honba)
+    kyoutaku: number;     // Kyoutaku sticks collected (count)
+    honba: number;        // Honba count at time of win
     isTsumo: boolean;
     doraCount: number;
     uraDoraCount: number;

@@ -369,8 +369,8 @@ input:checked + .slider:before {
    MAHJONG TILE RENDERING (3D)
    ========================================== */
 .mahjong-tile {
-  width: 36px;
-  height: 50px;
+  width: 38px;
+  height: 52px;
   border-radius: 6px;
   cursor: default;
   user-select: none;
@@ -515,15 +515,15 @@ input:checked + .slider:before {
   font-size: 0.48rem;
 }
 
-/* 3. Dora indicators in center are also smaller */
+/* 3. Dora indicators in center */
 .dora-tiles .mahjong-tile {
-  width: 20px;
-  height: 27px;
+  width: 22px;
+  height: 30px;
   border-radius: 3px;
   border-bottom: 1.5px solid #cfc4a6;
 }
 .dora-tiles .tile-center {
-  padding-top: 1.5px;
+  padding-top: 1px;
 }
 .dora-tiles .tile-unicode-glyph {
   font-size: 1.2rem;
@@ -576,7 +576,20 @@ input:checked + .slider:before {
 }
 
 .drawn-tile-gap {
-  margin-left: 8px; /* Professional visual gap for drawn tile */
+  /* Reserve fixed width equal to tile + gap so hand doesn't shift on draw */
+  margin-left: 8px;
+}
+
+/* Invisible placeholder that keeps the same width as a tile, preventing layout shift on draw */
+.drawn-tile-spacer {
+  width: 38px;
+  height: 52px;
+  visibility: hidden;
+}
+
+/* Placeholder container - visible but tile inside is hidden */
+.drawn-tile-placeholder {
+  pointer-events: none;
 }
 
 .player-melds {
@@ -595,12 +608,17 @@ input:checked + .slider:before {
   align-items: flex-end;
 }
 
-/* Seating Position Layouts */
-/* Player 0 (Human) - Bottom Edge */
+/* Player 0 (Human) - Bottom Edge - anchored at center, wrapper uses flex-row-reverse trick */
 .player-pos-0 {
   bottom: 15px;
   left: 50%;
   transform: translateX(-50%);
+}
+
+/* When a tile is drawn, the hand-tiles-wrapper has a drawn-tile-gap.
+   We use a stable layout by giving the hand-tiles a fixed flex direction */
+.player-pos-0 .hand-tiles-wrapper {
+  flex-direction: row;
 }
 
 /* Player 1 (Opponent 1) - Right Edge (Rotated) */
@@ -984,12 +1002,29 @@ input:checked + .slider:before {
 
 .round-over-modal {
   width: 100%;
-  max-width: 600px;
+  max-width: 620px;
   border-radius: 24px;
   border: 1px solid rgba(255, 255, 255, 0.15);
   padding: 16px 20px;
-  max-height: 95%;
+  max-height: 95vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Make the body scrollable while keeping the button fixed at bottom */
+.round-over-modal-body {
+  flex: 1;
   overflow-y: auto;
+  min-height: 0;
+  padding-right: 4px;
+}
+
+.modal-actions-area {
+  flex-shrink: 0;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: 8px;
 }
 
 .modal-title-header {
@@ -1071,12 +1106,12 @@ input:checked + .slider:before {
   gap: 8px;
 }
 
-/* Make tiles inside RoundOverModal smaller to prevent vertical overflow */
+/* Tiles inside RoundOverModal - sized for readability */
 .round-over-modal .tiles-row .mahjong-tile,
 .round-over-modal .melds-row .mahjong-tile {
-  width: 24px;
-  height: 33px;
-  border-radius: 3.5px;
+  width: 28px;
+  height: 38px;
+  border-radius: 4px;
 }
 .round-over-modal .tiles-row .tile-center,
 .round-over-modal .melds-row .tile-center {
@@ -1084,8 +1119,8 @@ input:checked + .slider:before {
 }
 .round-over-modal .tiles-row .tile-svg-glyph,
 .round-over-modal .melds-row .tile-svg-glyph {
-  width: 82%;
-  height: 82%;
+  width: 85%;
+  height: 85%;
 }
 
 .indicators-display {
@@ -1126,29 +1161,34 @@ input:checked + .slider:before {
 .yaku-breakdown {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
-  margin-top: 8px;
+  align-items: flex-start;
+  margin-top: 12px;
+  gap: 12px;
 }
 
 .yaku-list-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  max-width: 70%;
+  max-width: 65%;
 }
 
 .yaku-tag {
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.08);
-  padding: 2px 6px;
-  border-radius: 8px;
-  font-size: 0.72rem;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.25);
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #e0f0e8;
+  letter-spacing: 0.02em;
 }
 
 .yaku-tag.dora {
-  border-color: var(--accent-red);
-  color: var(--accent-red);
-  background: rgba(255, 51, 102, 0.05);
+  border-color: rgba(255, 80, 80, 0.6);
+  color: #ff8080;
+  background: rgba(255, 51, 102, 0.12);
+  box-shadow: 0 0 8px rgba(255, 51, 102, 0.2);
 }
 
 .score-summary-numbers {
@@ -2227,6 +2267,38 @@ input:checked + .slider:before {
   font-size: 1.15rem;
   font-weight: 700;
   color: var(--accent-yellow);
+}
+
+/* Kyoutaku (riichi deposit) special highlighting */
+.breakdown-row.kyoutaku-row {
+  background: rgba(255, 215, 0, 0.05);
+  border-radius: 4px;
+  padding: 3px 4px;
+  margin: 2px 0;
+  border-left: 2px solid rgba(255, 215, 0, 0.5);
+}
+
+.breakdown-row.kyoutaku-row .breakdown-label {
+  color: #ffd700;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.kyoutaku-badge {
+  display: inline-block;
+  background: #ffd700;
+  color: #1a1a1a;
+  font-size: 0.6rem;
+  font-weight: 800;
+  padding: 1px 4px;
+  border-radius: 3px;
+  letter-spacing: 0.02em;
+}
+
+.breakdown-value.kyoutaku-value {
+  color: #ffd700;
+  font-weight: 700;
 }
 
 /* Win banner sub-text breakdown */

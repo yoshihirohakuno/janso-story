@@ -193,11 +193,11 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({ player, playerIndex, isA
           </div>
           <div className="banner-yaku-details">
             {winnerResult.fu} 符 {winnerResult.han + winnerResult.doraCount + winnerResult.akaDoraCount + winnerResult.uraDoraCount} 翻
-            {(honba > 0 || kyoutaku > 0) && (
+            {((winnerResult.honba ?? 0) > 0 || (winnerResult.kyoutaku ?? 0) > 0) && (
               <span className="banner-breakdown-sub">
-                (素点: {(winnerResult.points - honba * 300 - kyoutaku * 1000).toLocaleString()}
-                {honba > 0 ? ` + 本場: ${honba * 300}` : ''}
-                {kyoutaku > 0 ? ` + 供託: ${kyoutaku * 1000}` : ''})
+                (素点: {((winnerResult.basePoints ?? winnerResult.points) - 0).toLocaleString()}
+                {(winnerResult.honba ?? 0) > 0 ? ` + 本場: ${(winnerResult.honba ?? 0) * 300}` : ''}
+                {(winnerResult.kyoutaku ?? 0) > 0 ? ` + 供託: ${(winnerResult.kyoutaku ?? 0) * 1000}` : ''})
               </span>
             )}
           </div>
@@ -276,8 +276,47 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({ player, playerIndex, isA
           })}
         </div>
 
-        {/* Drawn Tile (separated) */}
-        {drawnTileInHand && (
+        {/* Drawn Tile (separated) - always reserve space for human to prevent layout shift */}
+        {isHuman ? (
+          <div className={`drawn-tile-gap hand-tile-item-container${!drawnTileInHand ? ' drawn-tile-placeholder' : ''}`}
+            onMouseEnter={() => drawnTileInHand && isHuman && setHoveredTileId(drawnTileInHand.id)}
+            onMouseLeave={() => isHuman && setHoveredTileId(null)}
+          >
+            {drawnTileInHand && riichiPending && hoveredTileId === drawnTileInHand.id && (
+              (() => {
+                const match = tenpaiDiscards.find(d => d.discardTileId === drawnTileInHand!.id);
+                if (!match) return null;
+                return (
+                  <div className="hover-waits-popup glassmorphic">
+                    <span className="waits-popup-label">待ち:</span>
+                    <div className="waits-tiles-row">
+                      {match.waits.map((w, wIdx) => {
+                        const dummyTile: Tile = { id: 10000 + wIdx, suit: w.suit, value: w.value, isRed: false };
+                        const remaining = getRemainingTileCount(dummyTile);
+                        return (
+                          <div key={wIdx} className="wait-tile-wrapper">
+                            <TileView tile={dummyTile} />
+                            <span className="wait-tile-count">{remaining}枚</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()
+            )}
+            {drawnTileInHand ? (
+              <TileView
+                tile={shouldReveal ? drawnTileInHand : undefined}
+                selectable={isHuman && isDiscardPhase}
+                onClick={() => handleDiscardClick(drawnTileInHand!.id)}
+                className={`${turnPhase === 'agari' && isWinner ? (isTsumoWin ? 'tsumo-won-glow' : 'ron-won-glow') : ''} ${riichiPending && tenpaiDiscards.some(d => d.discardTileId === drawnTileInHand!.id) ? 'riichi-option' : ''} ${turnPhase !== 'agari' ? 'tile-draw-in' : ''}`}
+              />
+            ) : (
+              <div className="drawn-tile-spacer" />
+            )}
+          </div>
+        ) : drawnTileInHand && (
           (() => {
             const isRiichiOpt = riichiPending && tenpaiDiscards.some(d => d.discardTileId === drawnTileInHand!.id);
             return (
@@ -286,30 +325,6 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({ player, playerIndex, isA
                 onMouseEnter={() => isHuman && setHoveredTileId(drawnTileInHand!.id)}
                 onMouseLeave={() => isHuman && setHoveredTileId(null)}
               >
-                {riichiPending && hoveredTileId === drawnTileInHand!.id && (
-                  (() => {
-                    const match = tenpaiDiscards.find(d => d.discardTileId === drawnTileInHand!.id);
-                    if (!match) return null;
-                    return (
-                      <div className="hover-waits-popup glassmorphic">
-                        <span className="waits-popup-label">待ち:</span>
-                        <div className="waits-tiles-row">
-                          {match.waits.map((w, wIdx) => {
-                            const dummyTile: Tile = { id: 10000 + wIdx, suit: w.suit, value: w.value, isRed: false };
-                            const remaining = getRemainingTileCount(dummyTile);
-                            return (
-                              <div key={wIdx} className="wait-tile-wrapper">
-                                <TileView tile={dummyTile} />
-                                <span className="wait-tile-count">{remaining}枚</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })()
-                )}
-
                 <TileView
                   tile={shouldReveal ? drawnTileInHand : undefined}
                   selectable={isHuman && isDiscardPhase}

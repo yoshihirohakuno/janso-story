@@ -129,6 +129,7 @@ export const RoundOverModal: React.FC = () => {
           </div>
         )}
 
+        <div className="round-over-modal-body">
         {/* 1. AGARI (WIN) DETAILS */}
         {turnPhase === 'agari' && yakuResults && (
           <div className="winners-breakdown-area">
@@ -219,26 +220,40 @@ export const RoundOverModal: React.FC = () => {
                     <div className="score-summary-numbers">
                       <span className="summary-han-fu">{res.fu} 符 / {res.han + res.doraCount + res.akaDoraCount + res.uraDoraCount} 翻</span>
                       <div className="score-breakdown-details">
-                        <div className="breakdown-row">
-                          <span className="breakdown-label">上がり役・素点:</span>
-                          <span className="breakdown-value">{(res.points - honba * 300 - kyoutaku * 1000).toLocaleString()} 点</span>
-                        </div>
-                        {honba > 0 && (
-                          <div className="breakdown-row">
-                            <span className="breakdown-label">本場棒 ({honba}本場):</span>
-                            <span className="breakdown-value">{(honba * 300).toLocaleString()} 点</span>
-                          </div>
-                        )}
-                        {kyoutaku > 0 && (
-                          <div className="breakdown-row">
-                            <span className="breakdown-label">供託 ({kyoutaku}本):</span>
-                            <span className="breakdown-value">{(kyoutaku * 1000).toLocaleString()} 点</span>
-                          </div>
-                        )}
-                        <div className="breakdown-row total-row">
-                          <span className="breakdown-label">合計支払点:</span>
-                          <span className="breakdown-value highlight">{res.points.toLocaleString()} 点</span>
-                        </div>
+                        {/* Use values captured at win time (res.kyoutaku/honba) not gameState (which resets to 0) */}
+                        {(() => {
+                          const resKyoutaku = res.kyoutaku ?? 0;
+                          const resHonba = res.honba ?? 0;
+                          const basePoints = res.basePoints ?? (res.points - resHonba * 300 - resKyoutaku * 1000);
+                          const hasExtras = resHonba > 0 || resKyoutaku > 0;
+                          return (
+                            <>
+                              <div className="breakdown-row">
+                                <span className="breakdown-label">上がり役・素点:</span>
+                                <span className="breakdown-value">{basePoints.toLocaleString()} 点</span>
+                              </div>
+                              {resHonba > 0 && (
+                                <div className="breakdown-row">
+                                  <span className="breakdown-label">本場棒 ({resHonba}本場):</span>
+                                  <span className="breakdown-value">+ {(resHonba * 300).toLocaleString()} 点</span>
+                                </div>
+                              )}
+                              {resKyoutaku > 0 && (
+                                <div className="breakdown-row kyoutaku-row">
+                                  <span className="breakdown-label">
+                                    <span className="kyoutaku-badge">点棒</span>
+                                    供託 ({resKyoutaku}本 × 1,000点):
+                                  </span>
+                                  <span className="breakdown-value kyoutaku-value">+ {(resKyoutaku * 1000).toLocaleString()} 点</span>
+                                </div>
+                              )}
+                              <div className="breakdown-row total-row">
+                                <span className="breakdown-label">{hasExtras ? '合計支払点:' : '合計支払点:'}</span>
+                                <span className="breakdown-value highlight">{res.points.toLocaleString()} 点</span>
+                              </div>
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>
@@ -328,6 +343,7 @@ export const RoundOverModal: React.FC = () => {
         )}
 
         {/* 5. NEXT ACTION BUTTON */}
+        </div>{/* end round-over-modal-body */}
         <div className="modal-actions-area">
           <button className="confirm-next-btn glow-animation" onClick={handleNext}>
             {turnPhase === 'game_over' ? 'ロビーに戻る (新しい対局を開始)' : '次の局へ進む'}
