@@ -4,30 +4,28 @@ import { CallOption, Tile } from '../../engine/types';
 import { TileView } from './TileView';
 
 export const ActionButtons: React.FC = () => {
-  const { gameState, selectCall } = useGameStore();
+  const { gameState, selectCall, riichiPending, setRiichiPending, isOnlineMode, mySeatIndex } = useGameStore();
   const { activeCalls, turnPhase } = gameState;
 
-  // We are player 0 (the human player)
-  const humanIndex = 0;
+  // We are player 0 (local) or mySeatIndex (online)
+  const humanIndex = isOnlineMode ? mySeatIndex : 0;
   const myCalls = activeCalls.filter(c => c.playerIndex === humanIndex);
 
   const [selectedType, setSelectedType] = useState<CallOption['type'] | null>(null);
   const [showMeldChoices, setShowMeldChoices] = useState<CallOption[]>([]);
-  const [isRiichiActivating, setIsRiichiActivating] = useState(false);
 
   // Reset local state when calls change
   useEffect(() => {
     setSelectedType(null);
     setShowMeldChoices([]);
-    setIsRiichiActivating(false);
-    (window as any).riichiPending = false;
+    setRiichiPending(false);
   }, [activeCalls]);
 
   if (turnPhase === 'agari' || turnPhase === 'ryukyoku' || turnPhase === 'game_over') {
     return null;
   }
 
-  if (myCalls.length === 0 && !isRiichiActivating) {
+  if (myCalls.length === 0 && !riichiPending) {
     return null;
   }
 
@@ -51,8 +49,7 @@ export const ActionButtons: React.FC = () => {
     } else if (type === 'riichi') {
       // Riichi mode: flag the UI that the user wants to declare Riichi,
       // and let them select a discard.
-      setIsRiichiActivating(true);
-      (window as any).riichiPending = true;
+      setRiichiPending(true);
       // Note: We don't submit the call yet. The call will be submitted
       // when they discard a tile with isRiichi = true.
     } else {
@@ -74,9 +71,8 @@ export const ActionButtons: React.FC = () => {
   };
 
   const handlePass = () => {
-    if (isRiichiActivating) {
-      setIsRiichiActivating(false);
-      (window as any).riichiPending = false;
+    if (riichiPending) {
+      setRiichiPending(false);
     } else {
       selectCall(humanIndex, 'pass');
     }
@@ -116,13 +112,13 @@ export const ActionButtons: React.FC = () => {
       {/* Main Buttons Row */}
       {showMeldChoices.length === 0 && (
         <div className="action-buttons-row">
-          {isRiichiActivating && (
+          {riichiPending && (
             <div className="riichi-guidance-msg">
               リーチ宣言牌を選択して打牌してください
             </div>
           )}
 
-          {!isRiichiActivating && (
+          {!riichiPending && (
             <>
               {hasRon && (
                 <button className="action-btn btn-ron glow-animation" onClick={() => handleActionClick('ron')}>
@@ -168,7 +164,7 @@ export const ActionButtons: React.FC = () => {
           )}
 
           <button className="action-btn btn-pass" onClick={handlePass}>
-            {isRiichiActivating ? 'キャンセル' : 'パス'}
+            {riichiPending ? 'キャンセル' : 'パス'}
           </button>
         </div>
       )}

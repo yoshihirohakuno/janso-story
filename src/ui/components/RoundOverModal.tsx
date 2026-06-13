@@ -44,8 +44,8 @@ const ScoreTicker: React.FC<ScoreTickerProps> = ({ startScore, endScore, change 
 };
 
 export const RoundOverModal: React.FC = () => {
-  const { gameState, confirmRoundEnd, setupNewGame } = useGameStore();
-  const { turnPhase, winnerIndices, yakuResults, scoreChanges, players, wind, roundNumber, honba, doraIndicators, uraDoraIndicators } = gameState;
+  const { gameState, confirmRoundEnd, setupNewGame, isOnlineMode, disconnectOnline } = useGameStore();
+  const { turnPhase, winnerIndices, yakuResults, scoreChanges, players, wind, roundNumber, honba, kyoutaku, doraIndicators, uraDoraIndicators } = gameState;
 
   const [visible, setVisible] = useState(false);
 
@@ -70,7 +70,11 @@ export const RoundOverModal: React.FC = () => {
 
   const handleNext = () => {
     if (turnPhase === 'game_over') {
-      setupNewGame();
+      if (isOnlineMode) {
+        disconnectOnline();
+      } else {
+        setupNewGame();
+      }
     } else {
       confirmRoundEnd();
     }
@@ -174,14 +178,28 @@ export const RoundOverModal: React.FC = () => {
                     <div className="indicator-group">
                       <span className="ind-label">ドラ表示牌:</span>
                       <div className="ind-tiles">
-                        {doraIndicators.map(t => <TileView key={t.id} tile={t} />)}
+                        {doraIndicators.map((t, idx) => (
+                          <TileView 
+                            key={t.id} 
+                            tile={t} 
+                            className="tile-flip-in"
+                            style={{ animationDelay: `${idx * 150}ms`, opacity: 0, animationFillMode: 'forwards' }}
+                          />
+                        ))}
                       </div>
                     </div>
                     {winner.isRiichi && (
                       <div className="indicator-group">
                         <span className="ind-label">裏ドラ表示牌:</span>
                         <div className="ind-tiles">
-                          {uraDoraIndicators.map(t => <TileView key={t.id} tile={t} />)}
+                          {uraDoraIndicators.map((t, idx) => (
+                            <TileView 
+                              key={t.id} 
+                              tile={t} 
+                              className="tile-flip-in"
+                              style={{ animationDelay: `${idx * 150 + 300}ms`, opacity: 0, animationFillMode: 'forwards' }}
+                            />
+                          ))}
                         </div>
                       </div>
                     )}
@@ -200,7 +218,28 @@ export const RoundOverModal: React.FC = () => {
 
                     <div className="score-summary-numbers">
                       <span className="summary-han-fu">{res.fu} 符 / {res.han + res.doraCount + res.akaDoraCount + res.uraDoraCount} 翻</span>
-                      <span className="summary-score-value">{res.points.toLocaleString()} 点</span>
+                      <div className="score-breakdown-details">
+                        <div className="breakdown-row">
+                          <span className="breakdown-label">上がり役・素点:</span>
+                          <span className="breakdown-value">{(res.points - honba * 300 - kyoutaku * 1000).toLocaleString()} 点</span>
+                        </div>
+                        {honba > 0 && (
+                          <div className="breakdown-row">
+                            <span className="breakdown-label">本場棒 ({honba}本場):</span>
+                            <span className="breakdown-value">{(honba * 300).toLocaleString()} 点</span>
+                          </div>
+                        )}
+                        {kyoutaku > 0 && (
+                          <div className="breakdown-row">
+                            <span className="breakdown-label">供託 ({kyoutaku}本):</span>
+                            <span className="breakdown-value">{(kyoutaku * 1000).toLocaleString()} 点</span>
+                          </div>
+                        )}
+                        <div className="breakdown-row total-row">
+                          <span className="breakdown-label">合計支払点:</span>
+                          <span className="breakdown-value highlight">{res.points.toLocaleString()} 点</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

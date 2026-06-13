@@ -8,15 +8,12 @@ import { RoundOverModal } from './RoundOverModal';
 import { WIND_NAMES } from '../../engine/constants';
 
 export const MahjongTable: React.FC = () => {
-  const { gameState } = useGameStore();
+  const { gameState, isOnlineMode, mySeatIndex } = useGameStore();
   const { players, activePlayerIndex } = gameState;
 
-  // Render the four sides of the table
-  // Seating:
-  // Player 0 (Human) - Bottom (South relative, wind E at game start)
-  // Player 1 (Bot) - Right (West relative, wind S)
-  // Player 2 (Bot) - Top (North relative, wind W)
-  // Player 3 (Bot) - Left (East relative, wind N)
+  const getScreenPos = (idx: number) => {
+    return isOnlineMode ? (idx - mySeatIndex + 4) % 4 : idx;
+  };
 
   return (
     <div className="mahjong-table-area glassmorphic">
@@ -30,10 +27,11 @@ export const MahjongTable: React.FC = () => {
           const isTurn = idx === activePlayerIndex;
           const isDealer = player.seatWind === 'E';
           const isRiichi = player.isRiichi || player.isDoubleRiichi;
+          const screenPos = getScreenPos(idx);
           return (
             <div 
               key={`badge-${player.id}`} 
-              className={`table-player-badge seat-pos-${idx} ${isTurn ? 'is-active-turn' : ''} ${isDealer ? 'is-dealer' : ''} ${isRiichi ? 'is-riichi' : ''}`}
+              className={`table-player-badge seat-pos-${screenPos} ${isTurn ? 'is-active-turn' : ''} ${isDealer ? 'is-dealer' : ''} ${isRiichi ? 'is-riichi' : ''}`}
             >
               <div className="badge-wind">{WIND_NAMES[player.seatWind]}</div>
               <div className="badge-details">

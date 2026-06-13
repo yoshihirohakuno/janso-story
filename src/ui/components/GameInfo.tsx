@@ -65,7 +65,7 @@ export const GameInfo: React.FC = () => {
           {Array.from({ length: 5 }).map((_, idx) => {
             const indicator = doraIndicators[idx];
             if (indicator) {
-              return <TileView key={indicator.id} tile={indicator} />;
+              return <TileView key={indicator.id} tile={indicator} className="tile-flip-in" />;
             }
             // Draw face-down for unrevealed dora indicators
             return <TileView key={`hidden-dora-${idx}`} />;

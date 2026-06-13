@@ -3,7 +3,7 @@ import { useGameStore } from '../../engine/store';
 import { WIND_NAMES } from '../../engine/constants';
 
 export const ScoreBoard: React.FC = () => {
-  const { gameState, cheatMode, gameLogs, toggleCheatMode, setupNewGame } = useGameStore();
+  const { gameState, cheatMode, gameLogs, toggleCheatMode, setupNewGame, isOnlineMode, disconnectOnline } = useGameStore();
   const { players, activePlayerIndex, wind, roundNumber, honba, kyoutaku } = gameState;
 
   const logsEndRef = useRef<HTMLDivElement>(null);
@@ -16,6 +16,12 @@ export const ScoreBoard: React.FC = () => {
   const handleRestart = () => {
     if (window.confirm('対局をリセットして新しく開始しますか？')) {
       setupNewGame();
+    }
+  };
+
+  const handleLeaveOnline = () => {
+    if (window.confirm('対局から退室してロビーに戻りますか？')) {
+      disconnectOnline();
     }
   };
 
@@ -92,22 +98,31 @@ export const ScoreBoard: React.FC = () => {
 
       {/* Debug & Controls Panel */}
       <div className="controls-panel">
-        <h3 className="section-title">開発設定</h3>
-        <div className="checkbox-control">
-          <label className="toggle-switch">
-            <input 
-              type="checkbox" 
-              checked={cheatMode} 
-              onChange={toggleCheatMode} 
-            />
-            <span className="slider" />
-          </label>
-          <span className="label-text">相手の手牌を公開する (Cheat)</span>
-        </div>
+        <h3 className="section-title">{isOnlineMode ? '接続設定' : '開発設定'}</h3>
+        
+        {!isOnlineMode && (
+          <div className="checkbox-control">
+            <label className="toggle-switch">
+              <input 
+                type="checkbox" 
+                checked={cheatMode} 
+                onChange={toggleCheatMode} 
+              />
+              <span className="slider" />
+            </label>
+            <span className="label-text">相手の手牌を公開する (Cheat)</span>
+          </div>
+        )}
 
-        <button className="restart-btn" onClick={handleRestart}>
-          対局を最初からやり直す
-        </button>
+        {isOnlineMode ? (
+          <button className="restart-btn leave-online-btn" onClick={handleLeaveOnline}>
+            対局から退室する
+          </button>
+        ) : (
+          <button className="restart-btn" onClick={handleRestart}>
+            対局を最初からやり直す
+          </button>
+        )}
       </div>
     </div>
   );

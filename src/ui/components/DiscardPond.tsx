@@ -9,10 +9,12 @@ interface DiscardPondProps {
 }
 
 export const DiscardPond: React.FC<DiscardPondProps> = ({ discards, playerIndex }) => {
-  const { gameState } = useGameStore();
-  const { turnPhase, lastDiscard, yakuResults } = gameState;
+  const { gameState, isOnlineMode, mySeatIndex } = useGameStore();
+  const { turnPhase, lastDiscard, yakuResults, activeCalls } = gameState;
 
+  const humanIndex = isOnlineMode ? mySeatIndex : 0;
   const isRonWin = turnPhase === 'agari' && yakuResults?.some(res => !res.isTsumo);
+  const hasRonOption = activeCalls.some(c => c.playerIndex === humanIndex && c.type === 'ron');
 
   // Discard ponds are typically rendered in rows of 6 tiles
   const rows: Discard[][] = [];
@@ -20,20 +22,32 @@ export const DiscardPond: React.FC<DiscardPondProps> = ({ discards, playerIndex 
     rows.push(discards.slice(i, i + 6));
   }
 
+  const screenPos = isOnlineMode ? (playerIndex - mySeatIndex + 4) % 4 : playerIndex;
+
   return (
-    <div className={`discard-pond pond-pos-${playerIndex}`}>
+    <div className={`discard-pond pond-pos-${screenPos}`}>
       {rows.map((row, rowIdx) => (
         <div key={rowIdx} className="pond-row">
           {row.map((discard, dIdx) => {
-            const isRonWinningTile = isRonWin && lastDiscard && discard.tile.id === lastDiscard.id;
+            const isTargetDiscard = lastDiscard && discard.tile.id === lastDiscard.id;
+            const isRonWinningTile = isRonWin && isTargetDiscard;
+            const isPossibleRonTarget = hasRonOption && isTargetDiscard;
+
             return (
-              <TileView
+              <div
                 key={`${rowIdx}-${dIdx}-${discard.tile.id}`}
-                tile={discard.tile}
-                isSideways={discard.isRiichi}
-                isGrayed={discard.isCalled && !isRonWinningTile}
-                className={isRonWinningTile ? 'ron-target-glow' : ''}
-              />
+                style={{ position: 'relative', display: 'inline-block' }}
+              >
+                <TileView
+                  tile={discard.tile}
+                  isSideways={discard.isRiichi}
+                  isGrayed={discard.isCalled && !isRonWinningTile && !isPossibleRonTarget}
+                  className={(isRonWinningTile || isPossibleRonTarget) ? 'ron-target-glow' : ''}
+                />
+                {isPossibleRonTarget && (
+                  <div className="ron-possible-badge">ロン可</div>
+                )}
+              </div>
             );
           })}
         </div>

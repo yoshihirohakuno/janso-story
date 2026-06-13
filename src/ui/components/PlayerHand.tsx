@@ -1,7 +1,8 @@
 import React from 'react';
-import { PlayerState, Tile, Meld } from '../../engine/types';
+import { PlayerState, Tile, Meld, SuitType } from '../../engine/types';
 import { TileView } from './TileView';
 import { useGameStore } from '../../engine/store';
+import { getTenpaiDiscardsWithWaits, TenpaiDiscardInfo, calculateShanten, indexToSuitAndValue } from '../../engine/shanten';
 
 interface PlayerHandProps {
   player: PlayerState;
@@ -10,10 +11,10 @@ interface PlayerHandProps {
 }
 
 export const PlayerHand: React.FC<PlayerHandProps> = ({ player, playerIndex, isActive }) => {
-  const { gameState, cheatMode, discard, selectCall } = useGameStore();
-  const { activePlayerIndex, turnPhase, drawnTile, activeCalls, winnerIndices, lastDiscard } = gameState;
+  const { gameState, cheatMode, discard, selectCall, riichiPending, setRiichiPending, isOnlineMode, mySeatIndex } = useGameStore();
+  const { activePlayerIndex, turnPhase, drawnTile, activeCalls, winnerIndices, lastDiscard, players, doraIndicators, honba, kyoutaku } = gameState;
 
-  const isHuman = playerIndex === 0;
+  const isHuman = isOnlineMode ? playerIndex === mySeatIndex : playerIndex === 0;
   const isDiscardPhase = isActive && (turnPhase === 'discard' || turnPhase === 'kan_draw');
 
   // Find if player has a Riichi option active or is already in Riichi
@@ -27,6 +28,34 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({ player, playerIndex, isA
 
   // Reveal player hands when they win, or if they are human / cheat mode is on
   const shouldReveal = isHuman || cheatMode || ((turnPhase === 'agari' || turnPhase === 'game_over') && isWinner);
+
+  // local hover states and calculations for tenpai wait indicators
+  const [hoveredTileId, setHoveredTileId] = React.useState<number | null>(null);
+
+  const tenpaiDiscards = (isHuman && (turnPhase === 'discard' || turnPhase === 'kan_draw'))
+    ? getTenpaiDiscardsWithWaits(player.hand, player.melds.length)
+    : [];
+
+  const getRemainingTileCount = (target: Tile): number => {
+    let count = 0;
+    player.hand.forEach(t => {
+      if (t.suit === target.suit && t.value === target.value) count++;
+    });
+    players.forEach(p => {
+      p.melds.forEach(m => {
+        m.tiles.forEach(t => {
+          if (t.suit === target.suit && t.value === target.value) count++;
+        });
+      });
+      p.discards.forEach(d => {
+        if (d.tile.suit === target.suit && d.tile.value === target.value) count++;
+      });
+    });
+    doraIndicators.forEach(t => {
+      if (t.suit === target.suit && t.value === target.value) count++;
+    });
+    return Math.max(0, 4 - count);
+  };
 
   // Separate the drawn tile from the rest of the hand (rendered on the right)
   let handTiles = [...player.hand];
@@ -46,6 +75,29 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({ player, playerIndex, isA
     drawnTileInHand = lastDiscard;
   }
 
+  const riichiWaits = React.useMemo(() => {
+    if (!isHuman || !isRiichiDeclared) return [];
+    const waits: { suit: SuitType; value: number }[] = [];
+    const openMeldCount = player.melds.length;
+    for (let wIdx = 0; wIdx < 34; wIdx++) {
+      const tInfo = indexToSuitAndValue(wIdx);
+      const dummyTile: Tile = { id: 9999, suit: tInfo.suit, value: tInfo.value, isRed: false };
+      const testHand = [...handTiles, dummyTile];
+      if (calculateShanten(testHand, openMeldCount) === -1) {
+        waits.push(tInfo);
+      }
+    }
+    return waits;
+  }, [isHuman, isRiichiDeclared, handTiles, player.melds.length]);
+
+  const totalRemainingCount = React.useMemo(() => {
+    if (riichiWaits.length === 0) return 0;
+    return riichiWaits.reduce((acc, w) => {
+      const dummyTile: Tile = { id: 9999, suit: w.suit, value: w.value, isRed: false };
+      return acc + getRemainingTileCount(dummyTile);
+    }, 0);
+  }, [riichiWaits]);
+
   // Handle tile discard click
   const handleDiscardClick = (tileId: number) => {
     if (!isDiscardPhase) return;
@@ -55,45 +107,13 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({ player, playerIndex, isA
       return; // Force tsumogiri for Riichi players
     }
 
-    // Check if Riichi is being declared in this turn
-    // If the human clicked the "Riichi" action button, we expect them to select a tile
-    // that keeps them in Tenpai.
-    // In our simplified UI, if the player has a pending "Riichi" call choice,
-    // they can click the Riichi button first, then click a tile.
-    // Let's check if the player clicked "Riichi" and has it pending.
-    // Actually, in our game flow, submitCall('riichi') just flags that the player is declaring Riichi.
-    // Let's check if there's an active call option for Riichi that has been selected.
-    // If so, we discard it as a Riichi declaration!
-    // We can check if 'riichi' is in the player's possible calls, and they toggled it.
-    // Let's check the store's state or simply look at state.
-    // In game.ts: if player chooses Riichi call, it transitions back to discard phase,
-    // and when they discard, we flag isRiichi = true.
-    // How do we know they are discarding as Riichi?
-    // We can store a local UI flag or state "riichiPending".
-    // For simplicity, let's see if the player has `activeCalls` containing a 'riichi' option.
-    // If they click a tile while they are allowed to declare Riichi, we can ask them or check.
-    // Actually, let's look at `gameState.activeCalls`. If it has a 'riichi' option,
-    // we can show a "Riichi" action button. When clicked, it activates a "Riichi Mode" in the UI,
-    // and the next tile they click to discard will be discarded with `isRiichi = true`.
-    // Let's implement this! We can check if the UI has a local state or if we pass a parameter.
-    // Let's handle this in the ActionButtons and local state.
-
-    // For now, normal discard:
-    // If the player clicked "Riichi" action button (which we will track via a state),
-    // we discard as Riichi.
-    // Let's check if there is a global flag or state. We can check if the store has a pending Riichi.
-    // Let's check:
-    const storeState = useGameStore.getState();
-    const isPendingRiichi = storeState.gameState.activeCalls.some(c => c.playerIndex === playerIndex && c.type === 'riichi') && 
-                            storeState.gameState.turnPhase === 'discard' &&
-                            // If they clicked Riichi button, we can check if they selected it.
-                            // To make it super simple: if the player can declare Riichi, we show a button.
-                            // Let's check if they activated "Riichi Mode".
-                            (window as any).riichiPending === true;
-
-    if (isPendingRiichi) {
+    if (riichiPending) {
+      // Ensure the selected tile is a valid Riichi discard
+      if (!tenpaiDiscards.some(d => d.discardTileId === tileId)) {
+        return; // Ignore clicking non-Tenpai discards when Riichi is pending
+      }
       discard(tileId, true);
-      (window as any).riichiPending = false;
+      setRiichiPending(false);
     } else {
       discard(tileId, false);
     }
@@ -162,8 +182,10 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({ player, playerIndex, isA
     );
   };
 
+  const screenPos = isOnlineMode ? (playerIndex - mySeatIndex + 4) % 4 : playerIndex;
+
   return (
-    <div className={`player-hand-container player-pos-${playerIndex} ${isActive ? 'active-turn' : ''}`}>
+    <div className={`player-hand-container player-pos-${screenPos} ${isActive ? 'active-turn' : ''}`}>
       {turnPhase === 'agari' && winnerResult && (
         <div className="table-win-yaku-banner glassmorphic">
           <div className="banner-yaku-title">
@@ -171,10 +193,35 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({ player, playerIndex, isA
           </div>
           <div className="banner-yaku-details">
             {winnerResult.fu} 符 {winnerResult.han + winnerResult.doraCount + winnerResult.akaDoraCount + winnerResult.uraDoraCount} 翻
+            {(honba > 0 || kyoutaku > 0) && (
+              <span className="banner-breakdown-sub">
+                (素点: {(winnerResult.points - honba * 300 - kyoutaku * 1000).toLocaleString()}
+                {honba > 0 ? ` + 本場: ${honba * 300}` : ''}
+                {kyoutaku > 0 ? ` + 供託: ${kyoutaku * 1000}` : ''})
+              </span>
+            )}
           </div>
           <div className="banner-yaku-list">
             {winnerResult.yakuList.slice(0, 3).join(' ・ ')}
             {winnerResult.yakuList.length > 3 ? ' ...' : ''}
+          </div>
+        </div>
+      )}
+
+      {isHuman && isRiichiDeclared && riichiWaits.length > 0 && turnPhase !== 'agari' && (
+        <div className="riichi-waits-banner glassmorphic">
+          <span className="waits-label">待ち (残 {totalRemainingCount}枚):</span>
+          <div className="waits-tiles">
+            {riichiWaits.map((w, wIdx) => {
+              const dummyTile: Tile = { id: 11000 + wIdx, suit: w.suit, value: w.value, isRed: false };
+              const remaining = getRemainingTileCount(dummyTile);
+              return (
+                <div key={wIdx} className="wait-tile-item">
+                  <TileView tile={dummyTile} />
+                  <span className="wait-count">{remaining}枚</span>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -185,28 +232,93 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({ player, playerIndex, isA
         <div className="hand-tiles">
           {handTiles.map(tile => {
             const isClickable = isHuman && isDiscardPhase && (!isRiichiDeclared || !drawnTileInHand);
+            const isRiichiOpt = riichiPending && tenpaiDiscards.some(d => d.discardTileId === tile.id);
             
             return (
-              <TileView
-                key={tile.id}
-                tile={shouldReveal ? tile : undefined}
-                selectable={isClickable}
-                onClick={() => handleDiscardClick(tile.id)}
-              />
+              <div 
+                key={tile.id} 
+                className="hand-tile-item-container"
+                onMouseEnter={() => isHuman && setHoveredTileId(tile.id)}
+                onMouseLeave={() => isHuman && setHoveredTileId(null)}
+              >
+                {riichiPending && hoveredTileId === tile.id && (
+                  (() => {
+                    const match = tenpaiDiscards.find(d => d.discardTileId === tile.id);
+                    if (!match) return null;
+                    return (
+                      <div className="hover-waits-popup glassmorphic">
+                        <span className="waits-popup-label">待ち:</span>
+                        <div className="waits-tiles-row">
+                          {match.waits.map((w, wIdx) => {
+                            const dummyTile: Tile = { id: 10000 + wIdx, suit: w.suit, value: w.value, isRed: false };
+                            const remaining = getRemainingTileCount(dummyTile);
+                            return (
+                              <div key={wIdx} className="wait-tile-wrapper">
+                                <TileView tile={dummyTile} />
+                                <span className="wait-tile-count">{remaining}枚</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()
+                )}
+
+                <TileView
+                  tile={shouldReveal ? tile : undefined}
+                  selectable={isClickable}
+                  onClick={() => handleDiscardClick(tile.id)}
+                  className={isRiichiOpt ? 'riichi-option' : ''}
+                />
+              </div>
             );
           })}
         </div>
 
         {/* Drawn Tile (separated) */}
         {drawnTileInHand && (
-          <div className="drawn-tile-gap">
-            <TileView
-              tile={shouldReveal ? drawnTileInHand : undefined}
-              selectable={isHuman && isDiscardPhase}
-              onClick={() => handleDiscardClick(drawnTileInHand!.id)}
-              className={turnPhase === 'agari' && isWinner ? (isTsumoWin ? 'tsumo-won-glow' : 'ron-won-glow') : ''}
-            />
-          </div>
+          (() => {
+            const isRiichiOpt = riichiPending && tenpaiDiscards.some(d => d.discardTileId === drawnTileInHand!.id);
+            return (
+              <div 
+                className="drawn-tile-gap hand-tile-item-container"
+                onMouseEnter={() => isHuman && setHoveredTileId(drawnTileInHand!.id)}
+                onMouseLeave={() => isHuman && setHoveredTileId(null)}
+              >
+                {riichiPending && hoveredTileId === drawnTileInHand!.id && (
+                  (() => {
+                    const match = tenpaiDiscards.find(d => d.discardTileId === drawnTileInHand!.id);
+                    if (!match) return null;
+                    return (
+                      <div className="hover-waits-popup glassmorphic">
+                        <span className="waits-popup-label">待ち:</span>
+                        <div className="waits-tiles-row">
+                          {match.waits.map((w, wIdx) => {
+                            const dummyTile: Tile = { id: 10000 + wIdx, suit: w.suit, value: w.value, isRed: false };
+                            const remaining = getRemainingTileCount(dummyTile);
+                            return (
+                              <div key={wIdx} className="wait-tile-wrapper">
+                                <TileView tile={dummyTile} />
+                                <span className="wait-tile-count">{remaining}枚</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()
+                )}
+
+                <TileView
+                  tile={shouldReveal ? drawnTileInHand : undefined}
+                  selectable={isHuman && isDiscardPhase}
+                  onClick={() => handleDiscardClick(drawnTileInHand!.id)}
+                  className={`${turnPhase === 'agari' && isWinner ? (isTsumoWin ? 'tsumo-won-glow' : 'ron-won-glow') : ''} ${isRiichiOpt ? 'riichi-option' : ''} ${turnPhase !== 'agari' ? 'tile-draw-in' : ''}`}
+                />
+              </div>
+            );
+          })()
         )}
 
         {/* Declared Melds */}

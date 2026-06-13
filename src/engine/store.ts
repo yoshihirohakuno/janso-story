@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { io, Socket } from 'socket.io-client';
 import { GameState, Tile, CallOption, PlayerState } from './types';
 import { initGame, startRound, drawTile, discardTile, submitCall, advanceRound } from './game';
 
@@ -8,6 +9,16 @@ interface GameStore {
   isGameStarted: boolean;
   gameLogs: string[];
   announcement: { type: string; playerName: string } | null;
+  riichiPending: boolean;
+  
+  // Online Mode variables
+  isOnlineMode: boolean;
+  roomCode: string | null;
+  socket: Socket | null;
+  roomPlayers: any[];
+  mySeatIndex: number;
+  serverUrl: string;
+  onlineLobbyError: string | null;
   
   // Actions
   setupNewGame: (names?: string[], autos?: boolean[]) => void;
@@ -17,7 +28,16 @@ interface GameStore {
   confirmRoundEnd: () => void;
   toggleCheatMode: () => void;
   addLog: (msg: string) => void;
-  runBotTurns: () => void; // Triggered to automate bot actions
+  runBotTurns: () => void;
+  setRiichiPending: (pending: boolean) => void;
+  
+  // Online Actions
+  connectOnline: (url: string) => void;
+  disconnectOnline: () => void;
+  createRoomOnline: (playerName: string) => void;
+  joinRoomOnline: (roomCode: string, playerName: string) => void;
+  startMatchOnline: () => void;
+  setOnlineMode: (isOnline: boolean) => void;
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -26,6 +46,113 @@ export const useGameStore = create<GameStore>((set, get) => ({
   isGameStarted: false,
   gameLogs: [],
   announcement: null,
+  riichiPending: false,
+
+  // Online Mode default state
+  isOnlineMode: false,
+  roomCode: null,
+  socket: null,
+  roomPlayers: [],
+  mySeatIndex: 0,
+  serverUrl: 'http://localhost:3001',
+  onlineLobbyError: null,
+
+  setRiichiPending: (pending) => set({ riichiPending: pending }),
+
+  setOnlineMode: (isOnline) => set({ isOnlineMode: isOnline }),
+
+  connectOnline: (url) => {
+    const currentSocket = get().socket;
+    if (currentSocket) {
+      currentSocket.disconnect();
+    }
+    
+    // Connect to server
+    const newSocket = io(url);
+    
+    newSocket.on('connect', () => {
+      console.log('Connected to multiplayer server:', url);
+      set({ onlineLobbyError: null });
+    });
+
+    newSocket.on('connect_error', () => {
+      set({ onlineLobbyError: 'サーバーに接続できません。IPアドレス/ポートを確認してください。' });
+    });
+
+    newSocket.on('lobby_update', ({ roomPlayers }) => {
+      set({ roomPlayers });
+    });
+
+    newSocket.on('state_update', ({ gameState, roomPlayers }) => {
+      set({
+        gameState,
+        roomPlayers,
+        isGameStarted: true,
+        // Sync logs from the authoritative state if possible, or append new logs
+        gameLogs: gameState.yakuResults 
+          ? [...get().gameLogs, `🏆 ${gameState.players[gameState.winnerIndices[0]].name} があがりました！`]
+          : get().gameLogs
+      });
+    });
+
+    set({ socket: newSocket, serverUrl: url });
+  },
+
+  disconnectOnline: () => {
+    const { socket } = get();
+    if (socket) {
+      socket.disconnect();
+    }
+    set({
+      socket: null,
+      isOnlineMode: false,
+      roomCode: null,
+      roomPlayers: [],
+      mySeatIndex: 0,
+      isGameStarted: false,
+      gameState: initGame(),
+      gameLogs: []
+    });
+  },
+
+  createRoomOnline: (playerName) => {
+    const { socket } = get();
+    if (!socket) return;
+    socket.emit('create_room', { playerName }, (res: any) => {
+      if (res.success) {
+        set({
+          roomCode: res.roomCode,
+          mySeatIndex: res.seatIndex,
+          roomPlayers: [{ socketId: socket.id, name: playerName, seatIndex: 0, isAuto: false }],
+          onlineLobbyError: null
+        });
+      } else {
+        set({ onlineLobbyError: res.error });
+      }
+    });
+  },
+
+  joinRoomOnline: (roomCode, playerName) => {
+    const { socket } = get();
+    if (!socket) return;
+    socket.emit('join_room', { roomCode, playerName }, (res: any) => {
+      if (res.success) {
+        set({
+          roomCode: res.roomCode,
+          mySeatIndex: res.seatIndex,
+          onlineLobbyError: null
+        });
+      } else {
+        set({ onlineLobbyError: res.error });
+      }
+    });
+  },
+
+  startMatchOnline: () => {
+    const { socket } = get();
+    if (!socket) return;
+    socket.emit('start_match');
+  },
 
   setupNewGame: (names, autos) => {
     const initialState = initGame(names, autos);
@@ -35,7 +162,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
       isGameStarted: true,
       gameLogs: ['東風戦を開始しました。', '東1局 配牌を行いました。'],
     });
-    // Run initial bot turns if dealer is bot
     setTimeout(() => get().runBotTurns(), 1000);
   },
 
@@ -51,6 +177,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   discard: (tileId: number, isRiichi = false) => {
+    const { isOnlineMode, socket } = get();
+    if (isOnlineMode && socket) {
+      socket.emit('discard', { tileId, isRiichi });
+      set({ riichiPending: false });
+      return;
+    }
+
     const state = get().gameState;
     const player = state.players[state.activePlayerIndex];
     const tile = player.hand.find(t => t.id === tileId);
@@ -70,7 +203,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const nextState = discardTile(state, state.activePlayerIndex, tileId, isRiichi);
     
     if (isRiichi) {
-      set({ announcement: { type: 'riichi', playerName: player.name } });
+      set({ announcement: { type: 'riichi', playerName: player.name }, riichiPending: false });
       setTimeout(() => {
         set({ announcement: null });
       }, 1000);
@@ -81,11 +214,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
       gameLogs: [...get().gameLogs, actionLog],
     });
 
-    // Run bot triggers
     setTimeout(() => get().runBotTurns(), 1000);
   },
 
   selectCall: (playerIndex, type, tiles = []) => {
+    const { isOnlineMode, socket } = get();
+    if (isOnlineMode && socket) {
+      socket.emit('submit_call', { type, tiles });
+      return;
+    }
+
     const state = get().gameState;
     const player = state.players[playerIndex];
     let callLog = '';
@@ -113,7 +251,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     const nextState = submitCall(state, playerIndex, type, tiles);
 
-    // If it's a win, print yaku details
     let nextLogs = [...get().gameLogs];
     if (callLog) nextLogs.push(callLog);
 
@@ -133,13 +270,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
       gameLogs: nextLogs,
     });
 
-    // If it's a pass decision, run next step quickly (e.g. 200ms) to avoid sluggishness.
-    // Otherwise wait 1000ms so the user can see the call action.
     const delay = type === 'pass' ? 200 : 1000;
     setTimeout(() => get().runBotTurns(), delay);
   },
 
   confirmRoundEnd: () => {
+    const { isOnlineMode, socket } = get();
+    if (isOnlineMode && socket) {
+      socket.emit('confirm_next_round');
+      return;
+    }
+
     const state = get().gameState;
     const nextState = advanceRound(state);
     
@@ -172,60 +313,71 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set(state => ({ gameLogs: [...state.gameLogs, msg] }));
   },
 
-  // Automated gameplay loop for bots
   runBotTurns: () => {
-    const { gameState, runBotTurns } = get();
+    const { gameState, isOnlineMode } = get();
+    // In Online Mode, bot turns are automated entirely on the server side
+    if (isOnlineMode) return;
+
     const { activePlayerIndex, turnPhase, players, activeCalls } = gameState;
 
     if (turnPhase === 'game_over' || turnPhase === 'agari' || turnPhase === 'ryukyoku') {
       return;
     }
 
-    // 1. Handle Active Call decisions for bots
     if (turnPhase === 'wait_call' && activeCalls.length > 0) {
-      // Find any bots with call options
       const botCalls = activeCalls.filter(c => players[c.playerIndex].isAuto);
       if (botCalls.length > 0) {
-        // Find if any bot can Ron
         const ronCall = botCalls.find(c => c.type === 'ron');
         if (ronCall) {
-          // Bot Rons!
           get().selectCall(ronCall.playerIndex, 'ron');
           return;
         }
-        
-        // Otherwise bots pass on Pon/Chi/Kan
-        // We pass for the first bot call option we find
         const passCall = botCalls[0];
         get().selectCall(passCall.playerIndex, 'pass');
         return;
       }
-      return; // Humans have active calls, wait for them
+      return;
     }
 
-    // 2. Handle Bot normal drawing/discarding
     const activePlayer = players[activePlayerIndex];
     if (activePlayer.isAuto) {
       if (turnPhase === 'draw') {
-        // Draw tile
         const nextState = drawTile(gameState);
         set({ gameState: nextState });
-        setTimeout(() => get().runBotTurns(), 800); // 800ms thinking delay
+        setTimeout(() => get().runBotTurns(), 800);
       } else if (turnPhase === 'discard') {
-        // Bot has drawn or has calls, needs to discard
-        // If bot can declare Tsumo, let them win!
         const tsumoOption = activeCalls.find(c => c.playerIndex === activePlayerIndex && c.type === 'tsumo');
         if (tsumoOption) {
           get().selectCall(activePlayerIndex, 'tsumo');
           return;
         }
-
-        // If bot can declare Riichi, let them do it?
-        // To keep bot simple, they just discard.
-        // Bot selects a discard.
-        // Standard bot: discard the drawn tile (tsumogiri) or just discard the last tile in hand
         const discardTileObj = gameState.drawnTile || activePlayer.hand[activePlayer.hand.length - 1];
         get().discard(discardTileObj.id);
+      }
+    } else {
+      if (activePlayer.isRiichi || activePlayer.isDoubleRiichi) {
+        if (turnPhase === 'discard') {
+          const myCalls = activeCalls.filter(c => c.playerIndex === activePlayerIndex);
+          if (myCalls.length === 0) {
+            const discardTileObj = gameState.drawnTile || activePlayer.hand[activePlayer.hand.length - 1];
+            if (discardTileObj) {
+              setTimeout(() => {
+                const latestState = get().gameState;
+                if (
+                  latestState.activePlayerIndex === activePlayerIndex &&
+                  latestState.turnPhase === 'discard' &&
+                  !latestState.players[activePlayerIndex].isAuto &&
+                  (latestState.players[activePlayerIndex].isRiichi || latestState.players[activePlayerIndex].isDoubleRiichi)
+                ) {
+                  const latestCalls = latestState.activeCalls.filter(c => c.playerIndex === activePlayerIndex);
+                  if (latestCalls.length === 0) {
+                    get().discard(discardTileObj.id, false);
+                  }
+                }
+              }, 1000);
+            }
+          }
+        }
       }
     }
   }

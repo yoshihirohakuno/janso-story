@@ -193,3 +193,34 @@ function calculateKokushiShanten(counts: number[]): number {
   // Formula: 13 - uniqueYaochuCount - hasPair
   return 13 - uniqueYaochuCount - hasPair;
 }
+
+export interface TenpaiDiscardInfo {
+  discardTileId: number;
+  waits: { suit: SuitType; value: number }[];
+}
+
+export function getTenpaiDiscardsWithWaits(hand: Tile[], openMeldCount: number): TenpaiDiscardInfo[] {
+  const results: TenpaiDiscardInfo[] = [];
+  for (let i = 0; i < hand.length; i++) {
+    const discardTile = hand[i];
+    const tempHand = [...hand];
+    tempHand.splice(i, 1);
+    const shanten = calculateShanten(tempHand, openMeldCount);
+    if (shanten === 0) {
+      const waits: { suit: SuitType; value: number }[] = [];
+      for (let wIdx = 0; wIdx < 34; wIdx++) {
+        const tInfo = indexToSuitAndValue(wIdx);
+        const dummyTile: Tile = { id: 9999, suit: tInfo.suit, value: tInfo.value, isRed: false };
+        const testHand = [...tempHand, dummyTile];
+        if (calculateShanten(testHand, openMeldCount) === -1) {
+          waits.push(tInfo);
+        }
+      }
+      results.push({
+        discardTileId: discardTile.id,
+        waits,
+      });
+    }
+  }
+  return results;
+}
