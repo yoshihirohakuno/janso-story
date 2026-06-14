@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Building2,
   ChevronDown,
@@ -41,7 +41,21 @@ interface SpriteProps {
   isPlayer?: boolean;
   isMoving?: boolean;
   isTarget?: boolean;
+  spriteSheetUrl?: string | null;
 }
+
+const getSpriteSheetPosition = (facing: Direction) => {
+  switch (facing) {
+    case 'down':
+      return '0% 0%';
+    case 'left':
+      return '33.333% 0%';
+    case 'right':
+      return '66.666% 0%';
+    case 'up':
+      return '100% 0%';
+  }
+};
 
 const PixelSprite: React.FC<SpriteProps> = ({
   name,
@@ -51,6 +65,7 @@ const PixelSprite: React.FC<SpriteProps> = ({
   isPlayer = false,
   isMoving = false,
   isTarget = false,
+  spriteSheetUrl = null,
 }) => (
   <div
     className={`rpg-sprite sprite-${sprite} facing-${facing} ${isPlayer ? 'is-player' : ''} ${isMoving ? 'is-moving' : ''} ${isTarget ? 'is-target' : ''}`}
@@ -58,9 +73,24 @@ const PixelSprite: React.FC<SpriteProps> = ({
     title={name}
   >
     <span className="sprite-shadow" />
-    <span className="sprite-head" />
-    <span className="sprite-body" />
-    <span className="sprite-feet" />
+    {isPlayer && spriteSheetUrl ? (
+      <span
+        className="sprite-sheet-frame"
+        style={{
+          backgroundImage: `url(${spriteSheetUrl})`,
+          backgroundPosition: getSpriteSheetPosition(facing),
+        }}
+      />
+    ) : (
+      <>
+        <span className="sprite-hair" />
+        <span className="sprite-face" />
+        <span className="sprite-body" />
+        <span className="sprite-arms" />
+        <span className="sprite-legs" />
+        <span className="sprite-feet" />
+      </>
+    )}
     {!isPlayer ? <span className="sprite-nameplate">{name}</span> : null}
   </div>
 );
@@ -78,6 +108,7 @@ const getZoneLabel = (zoneId: string) => (
 );
 
 export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpenMahjongLobby }) => {
+  const [misakiSpriteSheetUrl, setMisakiSpriteSheetUrl] = useState<string | null>(null);
   const {
     storyStage,
     money,
@@ -153,6 +184,47 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
     (storyStage === 'tutorial_before' && targetNpc?.id === 'kurokawa') ||
     storyStage === 'tutorial_match_started'
   );
+
+  useEffect(() => {
+    let alive = true;
+    const image = new Image();
+    image.src = '/rpg/misaki-sheet-source-v1.png';
+    image.onload = () => {
+      if (!alive) return;
+      const canvas = document.createElement('canvas');
+      canvas.width = image.width;
+      canvas.height = image.height;
+      const context = canvas.getContext('2d');
+      if (!context) return;
+      context.drawImage(image, 0, 0);
+      const frameWidth = image.width / 4;
+      const data = context.getImageData(0, 0, image.width, image.height);
+      const pixels = data.data;
+
+      for (let index = 0; index < pixels.length; index += 4) {
+        const red = pixels[index];
+        const green = pixels[index + 1];
+        const blue = pixels[index + 2];
+        if (green > 245 && red < 25 && blue < 25) {
+          pixels[index + 3] = 0;
+        }
+      }
+
+      context.putImageData(data, 0, 0);
+
+      const cropCanvas = document.createElement('canvas');
+      cropCanvas.width = frameWidth * 4;
+      cropCanvas.height = image.height;
+      const cropContext = cropCanvas.getContext('2d');
+      if (!cropContext) return;
+      cropContext.drawImage(canvas, 0, 0);
+      setMisakiSpriteSheetUrl(cropCanvas.toDataURL('image/png'));
+    };
+
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -258,6 +330,7 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
                 facing={facing}
                 sprite="hero"
                 isPlayer
+                spriteSheetUrl={misakiSpriteSheetUrl}
               />
             </div>
           </div>

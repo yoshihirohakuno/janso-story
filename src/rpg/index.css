@@ -182,13 +182,14 @@
 .rpg-sprite {
   position: relative;
   z-index: 8;
-  width: min(66%, 46px);
-  height: min(94%, 62px);
+  width: min(320%, 192px);
+  height: min(360%, 232px);
   display: grid;
   place-items: center;
   justify-self: center;
   align-self: end;
   pointer-events: none;
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.4));
 }
 
 .rpg-sprite span {
@@ -205,7 +206,7 @@
 }
 
 .sprite-nameplate {
-  bottom: calc(100% - 6px);
+  bottom: calc(100% - 2px);
   left: 50%;
   transform: translateX(-50%);
   min-width: 28px;
@@ -213,64 +214,117 @@
   background: rgba(22, 16, 11, 0.94);
   border: 1px solid rgba(240, 207, 117, 0.72);
   color: #fff2c7;
-  font-size: 0.56rem;
+  font-size: 0.58rem;
   font-weight: 800;
   white-space: nowrap;
-  opacity: 0.92;
+  opacity: 0.96;
 }
 
-.sprite-head {
-  width: 44%;
-  height: 38%;
-  top: 12%;
-  background: #ffd09d;
+.sprite-hair,
+.sprite-face,
+.sprite-body,
+.sprite-arms,
+.sprite-legs,
+.sprite-feet,
+.sprite-sheet-frame {
   border: 2px solid #2c180d;
-  box-shadow: inset 0 6px 0 var(--hair, #6a3218);
+}
+
+.sprite-sheet-frame {
+  width: 88%;
+  height: 98%;
+  bottom: 0;
+  background-repeat: no-repeat;
+  background-size: 400% 100%;
+  image-rendering: pixelated;
+  border: 0;
+}
+
+.sprite-hair {
+  width: 42%;
+  height: 20%;
+  top: 8%;
+  background: var(--hair, #6a3218);
+  border-bottom: 0;
+}
+
+.sprite-face {
+  width: 36%;
+  height: 18%;
+  top: 24%;
+  background: #ffd09d;
 }
 
 .sprite-body {
-  width: 52%;
-  height: 36%;
-  top: 45%;
+  width: 40%;
+  height: 22%;
+  top: 43%;
   background: var(--body, #bd2d26);
-  border: 2px solid #2c180d;
+}
+
+.sprite-arms {
+  width: 58%;
+  height: 10%;
+  top: 46%;
+  background: linear-gradient(
+    90deg,
+    var(--body, #bd2d26) 0 28%,
+    transparent 29% 71%,
+    var(--body, #bd2d26) 72%
+  );
+  border-left: 0;
+  border-right: 0;
+}
+
+.sprite-legs {
+  width: 34%;
+  height: 16%;
+  bottom: 16%;
+  background: var(--legs, #233a6d);
 }
 
 .sprite-feet {
-  width: 46%;
-  height: 12%;
-  bottom: 5%;
+  width: 40%;
+  height: 8%;
+  bottom: 7%;
   background: linear-gradient(90deg, #20140e 0 42%, transparent 43% 56%, #20140e 57%);
+  border-top: 0;
 }
 
 .sprite-hero {
   --hair: #7b3b1e;
-  --body: linear-gradient(90deg, #c4342a 0 38%, #f0e4d4 39% 58%, #1d4a85 59%);
+  --body: linear-gradient(90deg, #c4342a 0 38%, #f0e4d4 39% 61%, #c4342a 62%);
+  --legs: #1d4a85;
 }
 
 .sprite-boyfriend {
   --hair: #161414;
   --body: linear-gradient(90deg, #1460a7 0 44%, #f1efe4 45% 58%, #1460a7 59%);
+  --legs: #1f2430;
 }
 
 .sprite-owner {
   --hair: #d9d4c6;
-  --body: linear-gradient(90deg, #ecddc7 0 33%, #284434 34% 72%, #ecddc7 73%);
+  --body: linear-gradient(90deg, #ecddc7 0 22%, #284434 23% 77%, #ecddc7 78%);
+  --legs: #2b4c37;
 }
 
 .sprite-regular {
   --hair: #c6a341;
   --body: #b08a42;
+  --legs: #8b7744;
 }
 
 .sprite-rival {
   --hair: #ddd6c9;
   --body: #5b3084;
+  --legs: #472568;
 }
 
 .sprite-customer {
   --hair: #141111;
   --body: #6f2c8b;
+  --legs: #40204f;
 }
 
 .rpg-sprite.is-player {
@@ -293,17 +347,39 @@
 }
 
 .facing-left .sprite-body,
-.facing-left .sprite-head {
+.facing-left .sprite-face,
+.facing-left .sprite-hair {
   transform: translateX(-2px);
 }
 
+.facing-left .sprite-arms {
+  transform: translateX(-3px);
+}
+
 .facing-right .sprite-body,
-.facing-right .sprite-head {
+.facing-right .sprite-face,
+.facing-right .sprite-hair {
   transform: translateX(2px);
 }
 
-.facing-up .sprite-head {
-  box-shadow: inset 0 16px 0 var(--hair, #6a3218);
+.facing-right .sprite-arms {
+  transform: translateX(3px);
+}
+
+.facing-up .sprite-hair {
+  height: 24%;
+}
+
+.facing-up .sprite-face {
+  height: 14%;
+}
+
+.facing-up .sprite-body {
+  width: 42%;
+}
+
+.facing-up .sprite-arms {
+  width: 52%;
 }
 
 @keyframes playerIdle {
