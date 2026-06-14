@@ -2,12 +2,18 @@ import React, { useState } from 'react';
 import { useGameStore } from './engine/store';
 import { MahjongTable } from './ui/components/MahjongTable';
 import { ScoreBoard } from './ui/components/ScoreBoard';
+import { RpgScene } from './rpg/components/RpgScene';
+import { useRpgStore } from './rpg/store';
+import type { RpgMatchResult } from './rpg/types';
 import './ui/index.css';
+
+type AppMode = 'rpg' | 'mahjongLobby' | 'mahjongFromRpg';
 
 export const App: React.FC = () => {
   const { 
     isGameStarted, 
     setupNewGame, 
+    endGame,
     announcement,
     isOnlineMode,
     roomCode,
@@ -28,6 +34,10 @@ export const App: React.FC = () => {
   const [names, setNames] = useState<string[]>(['あなた (自分)', '雀士AI 桐生', '雀士AI 冴島', '雀士AI 真島']);
   const [autos, setAutos] = useState<boolean[]>([false, true, true, true]); // seat 0 is human, others bot
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [appMode, setAppMode] = useState<AppMode>('rpg');
+
+  const applyRpgMatchResult = useRpgStore((state) => state.applyMatchResult);
+  const currentRpgMatch = useRpgStore((state) => state.currentMatch);
 
   // Online specific state
   const [activeTab, setActiveTab] = useState<'local' | 'online'>('local');
@@ -48,7 +58,32 @@ export const App: React.FC = () => {
 
   const handleStartGame = () => {
     // Start East-South Match (東南戦)
+    setAppMode('mahjongLobby');
     setupNewGame(names, autos);
+  };
+
+  const handleStartTutorialMatch = () => {
+    setAppMode('mahjongFromRpg');
+    setupNewGame(['美咲', '健太', 'タケ爺', '黒川'], [false, true, true, true]);
+  };
+
+  const handleRpgMatchComplete = (result: RpgMatchResult) => {
+    applyRpgMatchResult(result);
+    endGame();
+    setSidebarOpen(false);
+    setAppMode('rpg');
+  };
+
+  const handleMockRpgResult = (victory: boolean) => {
+    handleRpgMatchComplete({
+      context: currentRpgMatch?.id ?? 'tutorial',
+      victory,
+      rank: victory ? 1 : 3,
+      score: victory ? 42800 : 18400,
+      earnedMoney: victory ? 7800 : 1200,
+      reputationChange: victory ? 8 : -1,
+      unlockedEvents: victory ? ['雀荘を託されるイベント'] : [],
+    });
   };
 
   const handleTabChange = (tab: 'local' | 'online') => {
@@ -60,6 +95,15 @@ export const App: React.FC = () => {
     }
   };
 
+  if (!isGameStarted && appMode === 'rpg') {
+    return (
+      <RpgScene
+        onStartTutorialMatch={handleStartTutorialMatch}
+        onOpenMahjongLobby={() => setAppMode('mahjongLobby')}
+      />
+    );
+  }
+
   if (!isGameStarted) {
     // Lobby Setup View
     return (
@@ -68,6 +112,9 @@ export const App: React.FC = () => {
           <div className="lobby-header">
             <h1>雀荘物語</h1>
             <p className="subtitle">麻雀エンジン開発フェーズ - ローカル対局室</p>
+            <button className="rpg-command-btn ghost lobby-rpg-return-btn" type="button" onClick={() => setAppMode('rpg')}>
+              RPGへ戻る
+            </button>
           </div>
 
           <div className="lobby-tabs">
@@ -326,13 +373,28 @@ export const App: React.FC = () => {
     <div className={`app-game-layout ${sidebarOpen ? 'sidebar-active' : 'sidebar-collapsed'}`}>
       {/* Game Table Grid */}
       <div className="table-viewport">
+        {appMode === 'mahjongFromRpg' && (
+          <div className="rpg-match-bridge">
+            <span>{currentRpgMatch?.title ?? 'RPGイベント対局'}</span>
+            <button className="rpg-match-bridge-btn primary" type="button" onClick={() => handleMockRpgResult(true)}>
+              勝利結果を反映
+            </button>
+            <button className="rpg-match-bridge-btn" type="button" onClick={() => handleMockRpgResult(false)}>
+              敗北結果を反映
+            </button>
+          </div>
+        )}
         {isOnlineMode && roomCode && (
           <div className="room-info-gamebar">
             <span className="connection-status-dot"></span>
             <span>オンライン対局中 - 対局室: <strong className="room-info-gamebar-code">{roomCode}</strong></span>
           </div>
         )}
-        <MahjongTable />
+        <MahjongTable
+          onMatchComplete={appMode === 'mahjongFromRpg' ? handleRpgMatchComplete : undefined}
+          matchContext={currentRpgMatch?.id ?? 'tutorial'}
+          matchReturnLabel="対局結果をRPGへ返す"
+        />
         
         {/* Toggle Sidebar Button */}
         <button 

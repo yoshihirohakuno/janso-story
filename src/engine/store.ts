@@ -26,6 +26,7 @@ interface GameStore {
   discard: (tileId: number, isRiichi?: boolean) => void;
   selectCall: (playerIndex: number, type: CallOption['type'], tiles?: Tile[]) => void;
   confirmRoundEnd: () => void;
+  endGame: () => void;
   toggleCheatMode: () => void;
   addLog: (msg: string) => void;
   runBotTurns: () => void;
@@ -303,6 +304,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
     });
 
     setTimeout(() => get().runBotTurns(), 1000);
+  },
+
+  endGame: () => {
+    set({
+      gameState: initGame(),
+      isGameStarted: false,
+      gameLogs: [],
+      announcement: null,
+      riichiPending: false,
+    });
   },
 
   toggleCheatMode: () => {

@@ -6,8 +6,19 @@ import { GameInfo } from './GameInfo';
 import { ActionButtons } from './ActionButtons';
 import { RoundOverModal } from './RoundOverModal';
 import { WIND_NAMES } from '../../engine/constants';
+import type { RpgMatchResult } from '../../rpg/types';
 
-export const MahjongTable: React.FC = () => {
+interface MahjongTableProps {
+  onMatchComplete?: (result: RpgMatchResult) => void;
+  matchContext?: RpgMatchResult['context'];
+  matchReturnLabel?: string;
+}
+
+export const MahjongTable: React.FC<MahjongTableProps> = ({
+  onMatchComplete,
+  matchContext,
+  matchReturnLabel,
+}) => {
   const { gameState, isOnlineMode, mySeatIndex } = useGameStore();
   const { players, activePlayerIndex } = gameState;
 
@@ -70,7 +81,11 @@ export const MahjongTable: React.FC = () => {
         <ActionButtons />
 
         {/* Round Over / Draw / Game Over summaries modal */}
-        <RoundOverModal />
+        <RoundOverModal
+          onMatchComplete={onMatchComplete}
+          matchContext={matchContext}
+          matchReturnLabel={matchReturnLabel}
+        />
 
       </div>
     </div>

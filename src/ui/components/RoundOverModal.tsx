@@ -3,7 +3,7 @@ import { useGameStore } from '../../engine/store';
 import { TileView } from './TileView';
 import { WIND_NAMES } from '../../engine/constants';
 import { sortTiles } from '../../engine/constants';
-import { Tile, Meld } from '../../engine/types';
+import type { RpgMatchResult } from '../../rpg/types';
 
 interface ScoreTickerProps {
   startScore: number;
@@ -43,7 +43,17 @@ const ScoreTicker: React.FC<ScoreTickerProps> = ({ startScore, endScore, change 
   return <>{currentScore.toLocaleString()} 点</>;
 };
 
-export const RoundOverModal: React.FC = () => {
+interface RoundOverModalProps {
+  onMatchComplete?: (result: RpgMatchResult) => void;
+  matchContext?: RpgMatchResult['context'];
+  matchReturnLabel?: string;
+}
+
+export const RoundOverModal: React.FC<RoundOverModalProps> = ({
+  onMatchComplete,
+  matchContext = 'regular',
+  matchReturnLabel = 'RPGへ戻る',
+}) => {
   const { gameState, confirmRoundEnd, setupNewGame, isOnlineMode, disconnectOnline } = useGameStore();
   const { turnPhase, winnerIndices, yakuResults, scoreChanges, players, wind, roundNumber, honba, kyoutaku, doraIndicators, uraDoraIndicators } = gameState;
 
@@ -68,8 +78,33 @@ export const RoundOverModal: React.FC = () => {
     return null;
   }
 
+  const buildRpgMatchResult = (): RpgMatchResult => {
+    const player = players[0];
+    const rankedPlayers = [...players].sort((a, b) => b.score - a.score);
+    const rank = rankedPlayers.findIndex((p) => p.id === player.id) + 1;
+    const victory = rank === 1;
+    const scoreDelta = player.score - 25000;
+
+    return {
+      context: matchContext,
+      victory,
+      rank,
+      score: player.score,
+      earnedMoney: victory
+        ? 6000 + Math.max(0, Math.floor(scoreDelta / 20))
+        : 1000 + Math.max(0, Math.floor(scoreDelta / 50)),
+      reputationChange: victory ? 8 : -1,
+      unlockedEvents: victory ? ['雀荘を託されるイベント'] : [],
+    };
+  };
+
   const handleNext = () => {
     if (turnPhase === 'game_over') {
+      if (onMatchComplete) {
+        onMatchComplete(buildRpgMatchResult());
+        return;
+      }
+
       if (isOnlineMode) {
         disconnectOnline();
       } else {
@@ -346,7 +381,9 @@ export const RoundOverModal: React.FC = () => {
         </div>{/* end round-over-modal-body */}
         <div className="modal-actions-area">
           <button className="confirm-next-btn glow-animation" onClick={handleNext}>
-            {turnPhase === 'game_over' ? 'ロビーに戻る (新しい対局を開始)' : '次の局へ進む'}
+            {turnPhase === 'game_over'
+              ? onMatchComplete ? matchReturnLabel : 'ロビーに戻る (新しい対局を開始)'
+              : '次の局へ進む'}
           </button>
         </div>
       </div>
