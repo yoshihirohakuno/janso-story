@@ -94,7 +94,13 @@ const PixelSprite: React.FC<SpriteProps> = ({
   spriteFrameUrl = null,
   motionOffset = { x: 0, y: 0 },
 }) => {
-  const spriteStyle: React.CSSProperties = isPlayer
+  // 画像フレームが渡された場合は画像ベース描画（プレイヤー・NPC共通）
+  const hasImageFrame = spriteFrameUrl != null;
+
+  // 画像ベースNPCはプレイヤーと同じ絶対配置（グリッドセル基準だとサイズが小さくなるため）
+  const useAbsolutePos = isPlayer || hasImageFrame;
+
+  const spriteStyle: React.CSSProperties = useAbsolutePos
     ? {
       left: `${((position.x + motionOffset.x + 0.5) / RPG_MAP_WIDTH) * 100}%`,
       top: `${((position.y + motionOffset.y + 1) / RPG_MAP_HEIGHT) * 100}%`,
@@ -103,9 +109,6 @@ const PixelSprite: React.FC<SpriteProps> = ({
       gridColumn: position.x + 1,
       gridRow: position.y + 1,
     };
-
-  // 画像フレームが渡された場合は画像ベース描画（プレイヤー・NPC共通）
-  const hasImageFrame = spriteFrameUrl != null;
 
   return (
     <div

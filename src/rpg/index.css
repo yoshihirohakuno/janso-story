@@ -192,11 +192,16 @@
   filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.4));
 }
 
-/* 画像ベースNPC（健太など）: プレイヤーと同じ倍率で表示 */
+/* 画像ベースNPC（健太など）: プレイヤーと同じサイズ・絶対配置 */
 .rpg-sprite.is-image-npc {
-  width: min(200%, 130px);
-  height: min(250%, 175px);
+  position: absolute;
+  z-index: 11;
+  width: clamp(86px, 13.2%, 160px);
+  height: clamp(118px, 25%, 206px);
+  transform: translate(-50%, -100%);
   overflow: visible;
+  justify-self: auto;
+  align-self: auto;
 }
 
 /* 画像NPCのsprite-frame-imageはボトム基準で表示 */
