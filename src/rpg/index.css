@@ -182,8 +182,8 @@
 .rpg-sprite {
   position: relative;
   z-index: 8;
-  width: min(320%, 192px);
-  height: min(360%, 232px);
+  width: min(132%, 84px);
+  height: min(160%, 108px);
   display: grid;
   place-items: center;
   justify-self: center;
@@ -330,6 +330,13 @@
 .rpg-sprite.is-player {
   z-index: 12;
   animation: playerIdle 1.2s steps(2) infinite;
+  width: min(500%, 248px);
+  height: min(560%, 320px);
+}
+
+.rpg-sprite.is-player .sprite-sheet-frame {
+  width: 100%;
+  height: 100%;
 }
 
 .rpg-sprite.is-moving {
