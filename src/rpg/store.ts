@@ -127,7 +127,7 @@ interface RpgStore extends RpgPersistentState {
   dialogue: DialogueState | null;
   statusMessage: string;
   hasSave: boolean;
-  movePlayer: (direction: Direction) => void;
+  movePlayer: (direction: Direction) => boolean;
   startDialogue: (npcId: CharacterId, characterName: string) => void;
   advanceDialogue: () => void;
   closeDialogue: () => void;
@@ -160,7 +160,7 @@ export const useRpgStore = create<RpgStore>((set, get) => ({
         facing: direction,
         statusMessage: 'これ以上は進めません。',
       });
-      return;
+      return false;
     }
 
     set({
@@ -168,6 +168,7 @@ export const useRpgStore = create<RpgStore>((set, get) => ({
       facing: direction,
       statusMessage: '',
     });
+    return true;
   },
 
   startDialogue: (npcId, characterName) => {

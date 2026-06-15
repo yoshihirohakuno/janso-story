@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Building2,
   ChevronDown,
@@ -41,20 +41,32 @@ interface SpriteProps {
   isPlayer?: boolean;
   isMoving?: boolean;
   isTarget?: boolean;
-  spriteSheetUrl?: string | null;
+  spriteFrameUrl?: string | null;
+  motionOffset?: Position;
 }
 
-const getSpriteSheetPosition = (facing: Direction) => {
-  switch (facing) {
-    case 'down':
-      return '0% 0%';
-    case 'left':
-      return '33.333% 0%';
-    case 'right':
-      return '66.666% 0%';
-    case 'up':
-      return '100% 0%';
-  }
+const MISAKI_FRAME_NUMBERS: Record<Direction, number[]> = {
+  up: [1, 2, 3, 4],
+  right: [5, 6, 7, 8],
+  down: [9, 10, 11, 12],
+  left: [13, 14, 15, 16],
+};
+
+const MOVEMENT_KEYS: Record<string, Direction> = {
+  arrowup: 'up',
+  w: 'up',
+  arrowdown: 'down',
+  s: 'down',
+  arrowleft: 'left',
+  a: 'left',
+  arrowright: 'right',
+  d: 'right',
+};
+
+const getMisakiFrameUrl = (facing: Direction, frameIndex: number) => {
+  const frameNumbers = MISAKI_FRAME_NUMBERS[facing];
+  const frameNumber = frameNumbers[frameIndex % frameNumbers.length];
+  return `/rpg/misaki-walk-frames/edited-photo_${frameNumber}.png`;
 };
 
 const PixelSprite: React.FC<SpriteProps> = ({
@@ -65,35 +77,47 @@ const PixelSprite: React.FC<SpriteProps> = ({
   isPlayer = false,
   isMoving = false,
   isTarget = false,
-  spriteSheetUrl = null,
-}) => (
-  <div
-    className={`rpg-sprite sprite-${sprite} facing-${facing} ${isPlayer ? 'is-player' : ''} ${isMoving ? 'is-moving' : ''} ${isTarget ? 'is-target' : ''}`}
-    style={{ gridColumn: position.x + 1, gridRow: position.y + 1 }}
-    title={name}
-  >
-    <span className="sprite-shadow" />
-    {isPlayer && spriteSheetUrl ? (
-      <span
-        className="sprite-sheet-frame"
-        style={{
-          backgroundImage: `url(${spriteSheetUrl})`,
-          backgroundPosition: getSpriteSheetPosition(facing),
-        }}
-      />
-    ) : (
-      <>
-        <span className="sprite-hair" />
-        <span className="sprite-face" />
-        <span className="sprite-body" />
-        <span className="sprite-arms" />
-        <span className="sprite-legs" />
-        <span className="sprite-feet" />
-      </>
-    )}
-    {!isPlayer ? <span className="sprite-nameplate">{name}</span> : null}
-  </div>
-);
+  spriteFrameUrl = null,
+  motionOffset = { x: 0, y: 0 },
+}) => {
+  const spriteStyle: React.CSSProperties = isPlayer
+    ? {
+      left: `${((position.x + motionOffset.x + 0.5) / RPG_MAP_WIDTH) * 100}%`,
+      top: `${((position.y + motionOffset.y + 1) / RPG_MAP_HEIGHT) * 100}%`,
+    }
+    : {
+      gridColumn: position.x + 1,
+      gridRow: position.y + 1,
+    };
+
+  return (
+    <div
+      className={`rpg-sprite sprite-${sprite} facing-${facing} ${isPlayer ? 'is-player' : ''} ${isMoving ? 'is-moving' : ''} ${isTarget ? 'is-target' : ''}`}
+      style={spriteStyle}
+      title={name}
+    >
+      <span className="sprite-shadow" />
+      {isPlayer && spriteFrameUrl ? (
+        <img
+          className="sprite-frame-image"
+          src={spriteFrameUrl}
+          alt=""
+          draggable={false}
+        />
+      ) : (
+        <>
+          <span className="sprite-hair" />
+          <span className="sprite-face" />
+          <span className="sprite-body" />
+          <span className="sprite-arms" />
+          <span className="sprite-legs" />
+          <span className="sprite-feet" />
+        </>
+      )}
+      {!isPlayer ? <span className="sprite-nameplate">{name}</span> : null}
+    </div>
+  );
+};
 
 const StatPill: React.FC<{ icon: React.ReactNode; label: string; value: string | number }> = ({ icon, label, value }) => (
   <div className="rpg-stat-pill">
@@ -108,7 +132,13 @@ const getZoneLabel = (zoneId: string) => (
 );
 
 export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpenMahjongLobby }) => {
-  const [misakiSpriteSheetUrl, setMisakiSpriteSheetUrl] = useState<string | null>(null);
+  const [playerFrameIndex, setPlayerFrameIndex] = useState(0);
+  const [playerMoving, setPlayerMoving] = useState(false);
+  const [playerRenderPosition, setPlayerRenderPosition] = useState<Position | null>(null);
+  const [playerMotionOffset, setPlayerMotionOffset] = useState<Position>({ x: 0, y: 0 });
+  const playerMoveTimerRef = useRef<number | null>(null);
+  const playerMovingRef = useRef(false);
+  const heldDirectionRef = useRef<Direction | null>(null);
   const {
     storyStage,
     money,
@@ -179,51 +209,61 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
     ? stageLayout.npc_layouts.find((layout) => layout.npc_id === targetNpc.id) ?? null
     : null;
   const activeTableCount = stageLayout.table_states.filter((table) => table.state !== 'empty').length;
+  const misakiFrameUrl = useMemo(
+    () => getMisakiFrameUrl(facing, playerMoving ? playerFrameIndex : 0),
+    [facing, playerFrameIndex, playerMoving],
+  );
 
   const canStartTutorialMatch = (
     (storyStage === 'tutorial_before' && targetNpc?.id === 'kurokawa') ||
     storyStage === 'tutorial_match_started'
   );
 
-  useEffect(() => {
-    let alive = true;
-    const image = new Image();
-    image.src = '/rpg/misaki-sheet-source-v1.png';
-    image.onload = () => {
-      if (!alive) return;
-      const canvas = document.createElement('canvas');
-      canvas.width = image.width;
-      canvas.height = image.height;
-      const context = canvas.getContext('2d');
-      if (!context) return;
-      context.drawImage(image, 0, 0);
-      const frameWidth = image.width / 4;
-      const data = context.getImageData(0, 0, image.width, image.height);
-      const pixels = data.data;
+  const moveMisaki = useCallback((direction: Direction) => {
+    if (playerMovingRef.current) return;
 
-      for (let index = 0; index < pixels.length; index += 4) {
-        const red = pixels[index];
-        const green = pixels[index + 1];
-        const blue = pixels[index + 2];
-        if (green > 245 && red < 25 && blue < 25) {
-          pixels[index + 3] = 0;
-        }
-      }
+    const before = useRpgStore.getState().position;
+    const moved = movePlayer(direction);
+    const after = useRpgStore.getState().position;
 
-      context.putImageData(data, 0, 0);
+    if (playerMoveTimerRef.current) {
+      window.clearTimeout(playerMoveTimerRef.current);
+    }
 
-      const cropCanvas = document.createElement('canvas');
-      cropCanvas.width = frameWidth * 4;
-      cropCanvas.height = image.height;
-      const cropContext = cropCanvas.getContext('2d');
-      if (!cropContext) return;
-      cropContext.drawImage(canvas, 0, 0);
-      setMisakiSpriteSheetUrl(cropCanvas.toDataURL('image/png'));
-    };
+    if (!moved || (before.x === after.x && before.y === after.y)) {
+      setPlayerRenderPosition(null);
+      setPlayerMotionOffset({ x: 0, y: 0 });
+      playerMovingRef.current = false;
+      setPlayerMoving(false);
+      return;
+    }
 
-    return () => {
-      alive = false;
-    };
+    setPlayerFrameIndex((frameIndex) => (frameIndex + 1) % 4);
+    setPlayerRenderPosition(before);
+    setPlayerMotionOffset({ x: 0, y: 0 });
+    playerMovingRef.current = true;
+    setPlayerMoving(true);
+
+    window.requestAnimationFrame(() => {
+      setPlayerMotionOffset({
+        x: after.x - before.x,
+        y: after.y - before.y,
+      });
+    });
+
+    playerMoveTimerRef.current = window.setTimeout(() => {
+      setPlayerRenderPosition(null);
+      setPlayerMotionOffset({ x: 0, y: 0 });
+      playerMovingRef.current = false;
+      setPlayerMoving(false);
+      playerMoveTimerRef.current = null;
+    }, 230);
+  }, [movePlayer]);
+
+  useEffect(() => () => {
+    if (playerMoveTimerRef.current) {
+      window.clearTimeout(playerMoveTimerRef.current);
+    }
   }, []);
 
   useEffect(() => {
@@ -238,20 +278,10 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
         return;
       }
 
-      const movement: Record<string, Direction> = {
-        arrowup: 'up',
-        w: 'up',
-        arrowdown: 'down',
-        s: 'down',
-        arrowleft: 'left',
-        a: 'left',
-        arrowright: 'right',
-        d: 'right',
-      };
-
-      if (movement[key]) {
+      if (MOVEMENT_KEYS[key]) {
         event.preventDefault();
-        movePlayer(movement[key]);
+        heldDirectionRef.current = MOVEMENT_KEYS[key];
+        moveMisaki(MOVEMENT_KEYS[key]);
         return;
       }
 
@@ -261,9 +291,43 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
       }
     };
 
+    const handleKeyUp = (event: KeyboardEvent) => {
+      const direction = MOVEMENT_KEYS[event.key.toLowerCase()];
+      if (direction && heldDirectionRef.current === direction) {
+        heldDirectionRef.current = null;
+      }
+    };
+
+    const releaseHeldDirection = () => {
+      heldDirectionRef.current = null;
+    };
+
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [advanceDialogue, dialogue, movePlayer, startDialogue, targetNpc]);
+    window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('blur', releaseHeldDirection);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('blur', releaseHeldDirection);
+    };
+  }, [advanceDialogue, dialogue, moveMisaki, startDialogue, targetNpc]);
+
+  useEffect(() => {
+    if (dialogue) {
+      heldDirectionRef.current = null;
+    }
+  }, [dialogue]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const heldDirection = heldDirectionRef.current;
+      if (heldDirection) {
+        moveMisaki(heldDirection);
+      }
+    }, 36);
+
+    return () => window.clearInterval(timer);
+  }, [moveMisaki]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -276,6 +340,17 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
   const handleStartTutorialMatch = () => {
     startTutorialMatch();
     onStartTutorialMatch();
+  };
+
+  const holdDpadDirection = (direction: Direction) => {
+    heldDirectionRef.current = direction;
+    moveMisaki(direction);
+  };
+
+  const releaseDpadDirection = (direction: Direction) => {
+    if (heldDirectionRef.current === direction) {
+      heldDirectionRef.current = null;
+    }
   };
 
   return (
@@ -326,11 +401,13 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
 
               <PixelSprite
                 name="美咲"
-                position={position}
+                position={playerRenderPosition ?? position}
                 facing={facing}
                 sprite="hero"
                 isPlayer
-                spriteSheetUrl={misakiSpriteSheetUrl}
+                isMoving={playerMoving}
+                spriteFrameUrl={misakiFrameUrl}
+                motionOffset={playerMotionOffset}
               />
             </div>
           </div>
@@ -343,10 +420,46 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
                 : `${currentArea?.label ?? HAKURYUTEI_MAP_SPEC.name}を移動中`}
             </div>
             <nav className="rpg-dpad" aria-label="移動操作">
-              <button type="button" aria-label="上へ" onClick={() => movePlayer('up')}><ChevronUp size={18} /></button>
-              <button type="button" aria-label="左へ" onClick={() => movePlayer('left')}><ChevronLeft size={18} /></button>
-              <button type="button" aria-label="下へ" onClick={() => movePlayer('down')}><ChevronDown size={18} /></button>
-              <button type="button" aria-label="右へ" onClick={() => movePlayer('right')}><ChevronRight size={18} /></button>
+              <button
+                type="button"
+                aria-label="上へ"
+                onPointerDown={() => holdDpadDirection('up')}
+                onPointerUp={() => releaseDpadDirection('up')}
+                onPointerLeave={() => releaseDpadDirection('up')}
+                onPointerCancel={() => releaseDpadDirection('up')}
+              >
+                <ChevronUp size={18} />
+              </button>
+              <button
+                type="button"
+                aria-label="左へ"
+                onPointerDown={() => holdDpadDirection('left')}
+                onPointerUp={() => releaseDpadDirection('left')}
+                onPointerLeave={() => releaseDpadDirection('left')}
+                onPointerCancel={() => releaseDpadDirection('left')}
+              >
+                <ChevronLeft size={18} />
+              </button>
+              <button
+                type="button"
+                aria-label="下へ"
+                onPointerDown={() => holdDpadDirection('down')}
+                onPointerUp={() => releaseDpadDirection('down')}
+                onPointerLeave={() => releaseDpadDirection('down')}
+                onPointerCancel={() => releaseDpadDirection('down')}
+              >
+                <ChevronDown size={18} />
+              </button>
+              <button
+                type="button"
+                aria-label="右へ"
+                onPointerDown={() => holdDpadDirection('right')}
+                onPointerUp={() => releaseDpadDirection('right')}
+                onPointerLeave={() => releaseDpadDirection('right')}
+                onPointerCancel={() => releaseDpadDirection('right')}
+              >
+                <ChevronRight size={18} />
+              </button>
             </nav>
             <div className="rpg-context-actions">
               <button
