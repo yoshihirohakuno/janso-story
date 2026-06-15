@@ -41,11 +41,19 @@ interface SpriteProps {
   isPlayer?: boolean;
   isMoving?: boolean;
   isTarget?: boolean;
-  spriteFrameUrl?: string | null;
+  spriteFrameUrl?: string | null;   // 美咲(プレイヤー)用 or NPC画像ベース共用
   motionOffset?: Position;
 }
 
 const MISAKI_FRAME_NUMBERS: Record<Direction, number[]> = {
+  up: [1, 2, 3, 4],
+  right: [5, 6, 7, 8],
+  down: [9, 10, 11, 12],
+  left: [13, 14, 15, 16],
+};
+
+// 健太: 美咲と同じ 4方向×4コマ = 16枚 方式
+const KENTA_FRAME_NUMBERS: Record<Direction, number[]> = {
   up: [1, 2, 3, 4],
   right: [5, 6, 7, 8],
   down: [9, 10, 11, 12],
@@ -69,6 +77,12 @@ const getMisakiFrameUrl = (facing: Direction, frameIndex: number) => {
   return `/rpg/misaki-walk-frames/edited-photo_${frameNumber}.png`;
 };
 
+const getKentaFrameUrl = (facing: Direction, frameIndex: number) => {
+  const frameNumbers = KENTA_FRAME_NUMBERS[facing];
+  const frameNumber = frameNumbers[frameIndex % frameNumbers.length];
+  return `/rpg/kenta-walk-frames/edited-photo_${frameNumber}.png`;
+};
+
 const PixelSprite: React.FC<SpriteProps> = ({
   name,
   position,
@@ -90,14 +104,17 @@ const PixelSprite: React.FC<SpriteProps> = ({
       gridRow: position.y + 1,
     };
 
+  // 画像フレームが渡された場合は画像ベース描画（プレイヤー・NPC共通）
+  const hasImageFrame = spriteFrameUrl != null;
+
   return (
     <div
-      className={`rpg-sprite sprite-${sprite} facing-${facing} ${isPlayer ? 'is-player' : ''} ${isMoving ? 'is-moving' : ''} ${isTarget ? 'is-target' : ''}`}
+      className={`rpg-sprite sprite-${sprite} facing-${facing} ${isPlayer ? 'is-player' : ''} ${isMoving ? 'is-moving' : ''} ${isTarget ? 'is-target' : ''} ${hasImageFrame && !isPlayer ? 'is-image-npc' : ''}`}
       style={spriteStyle}
       title={name}
     >
       <span className="sprite-shadow" />
-      {isPlayer && spriteFrameUrl ? (
+      {hasImageFrame ? (
         <img
           className="sprite-frame-image"
           src={spriteFrameUrl}
@@ -136,6 +153,8 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
   const [playerMoving, setPlayerMoving] = useState(false);
   const [playerRenderPosition, setPlayerRenderPosition] = useState<Position | null>(null);
   const [playerMotionOffset, setPlayerMotionOffset] = useState<Position>({ x: 0, y: 0 });
+  // 健太のフレームアニメーション用（NPC共通のグローバルフレームカウンター）
+  const [npcFrameIndex, setNpcFrameIndex] = useState(0);
   const playerMoveTimerRef = useRef<number | null>(null);
   const playerMovingRef = useRef(false);
   const heldDirectionRef = useRef<Direction | null>(null);
@@ -337,6 +356,14 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
     return () => window.clearInterval(timer);
   }, [tickNpcMovement]);
 
+  // NPCフレームアニメーションタイマー（380ms = NPC移動周期に合わせる）
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setNpcFrameIndex((prev) => (prev + 1) % 4);
+    }, 380);
+    return () => window.clearInterval(timer);
+  }, []);
+
   const handleStartTutorialMatch = () => {
     startTutorialMatch();
     onStartTutorialMatch();
@@ -387,17 +414,24 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
                 gridTemplateRows: `repeat(${RPG_MAP_HEIGHT}, 1fr)`,
               }}
             >
-              {npcStates.map((npc) => (
-                <PixelSprite
-                  key={npc.id}
-                  name={npc.name}
-                  position={npc.position}
-                  facing={npc.facing}
-                  sprite={npc.sprite}
-                  isMoving={npc.moving}
-                  isTarget={targetNpc?.id === npc.id}
-                />
-              ))}
+              {npcStates.map((npc) => {
+                // 健太だけ画像ベーススプライト（美咲と同じ16枚PNG方式）
+                const npcFrameUrl = npc.id === 'kenta'
+                  ? getKentaFrameUrl(npc.facing, npc.moving ? npcFrameIndex : 0)
+                  : null;
+                return (
+                  <PixelSprite
+                    key={npc.id}
+                    name={npc.name}
+                    position={npc.position}
+                    facing={npc.facing}
+                    sprite={npc.sprite}
+                    isMoving={npc.moving}
+                    isTarget={targetNpc?.id === npc.id}
+                    spriteFrameUrl={npcFrameUrl}
+                  />
+                );
+              })}
 
               <PixelSprite
                 name="美咲"
