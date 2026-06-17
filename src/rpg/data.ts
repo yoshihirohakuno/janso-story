@@ -200,29 +200,29 @@ export const getVisibleNpcs = (stage: StoryStage): RpgNpc[] => (
 
 const NPC_PATROL_ROUTES: Partial<Record<StoryStage, Partial<Record<CharacterId, Position[]>>>> = {
   tutorial_before: {
-    kenta: [{ x: 9, y: 8 }, { x: 10, y: 8 }, { x: 10, y: 9 }, { x: 9, y: 9 }],
+    kenta: [{ x: 7, y: 8 }, { x: 7, y: 9 }, { x: 7, y: 10 }, { x: 7, y: 9 }],
     takeji: [{ x: 3, y: 15 }, { x: 4, y: 15 }, { x: 4, y: 16 }, { x: 3, y: 16 }],
   },
   tutorial_match_started: {
-    kenta: [{ x: 11, y: 11 }, { x: 12, y: 11 }, { x: 11, y: 11 }, { x: 11, y: 12 }],
+    kenta: [{ x: 14, y: 11 }, { x: 14, y: 12 }, { x: 14, y: 11 }, { x: 14, y: 10 }],
   },
   tutorial_after: {
-    kenta: [{ x: 10, y: 5 }, { x: 11, y: 5 }, { x: 10, y: 5 }, { x: 10, y: 6 }],
-    takeji: [{ x: 23, y: 8 }, { x: 24, y: 8 }, { x: 23, y: 8 }, { x: 23, y: 9 }],
+    kenta: [{ x: 20, y: 4 }, { x: 21, y: 4 }, { x: 22, y: 4 }, { x: 21, y: 4 }],
+    takeji: [{ x: 24, y: 8 }, { x: 25, y: 8 }, { x: 25, y: 9 }, { x: 24, y: 9 }],
   },
   shop_entrusted: {
-    kenta: [{ x: 18, y: 18 }, { x: 19, y: 18 }, { x: 18, y: 18 }, { x: 18, y: 17 }],
-    takeji: [{ x: 23, y: 10 }, { x: 24, y: 10 }, { x: 24, y: 9 }, { x: 23, y: 9 }],
-    regular: [{ x: 27, y: 7 }, { x: 26, y: 7 }, { x: 26, y: 8 }, { x: 27, y: 8 }],
+    kenta: [{ x: 18, y: 18 }, { x: 17, y: 18 }, { x: 18, y: 18 }, { x: 18, y: 17 }],
+    takeji: [{ x: 24, y: 10 }, { x: 25, y: 10 }, { x: 25, y: 9 }, { x: 24, y: 9 }],
+    regular: [{ x: 25, y: 8 }, { x: 25, y: 9 }, { x: 24, y: 9 }, { x: 24, y: 8 }],
   },
   regular_match_unlocked: {
-    takeji: [{ x: 18, y: 11 }, { x: 19, y: 11 }, { x: 19, y: 12 }, { x: 18, y: 12 }],
+    takeji: [{ x: 14, y: 11 }, { x: 14, y: 12 }, { x: 14, y: 13 }, { x: 14, y: 12 }],
     regular: [{ x: 24, y: 8 }, { x: 25, y: 8 }, { x: 25, y: 9 }, { x: 24, y: 9 }],
   },
   rival_appeared: {
-    takeji: [{ x: 23, y: 10 }, { x: 24, y: 10 }, { x: 23, y: 10 }, { x: 23, y: 9 }],
-    regular: [{ x: 27, y: 7 }, { x: 27, y: 8 }, { x: 26, y: 8 }, { x: 26, y: 7 }],
-    reina: [{ x: 23, y: 12 }, { x: 24, y: 12 }, { x: 23, y: 12 }, { x: 23, y: 13 }],
+    takeji: [{ x: 24, y: 10 }, { x: 25, y: 10 }, { x: 24, y: 10 }, { x: 24, y: 9 }],
+    regular: [{ x: 25, y: 8 }, { x: 25, y: 9 }, { x: 24, y: 9 }, { x: 24, y: 8 }],
+    reina: [{ x: 24, y: 12 }, { x: 25, y: 12 }, { x: 24, y: 12 }, { x: 24, y: 13 }],
   },
 };
 

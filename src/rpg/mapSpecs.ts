@@ -405,26 +405,22 @@ export const HAKURYUTEI_MAP_SPEC: HakuryuteiMapSpec = {
     cleanliness: 80,
   },
   collision_areas: [
-    { id: 'left_storage', label: '左側ロッカーと備品', x: 0, y: 4, width: 5, height: 3 },
-    { id: 'counter', label: '受付カウンター', x: 11, y: 1, width: 8, height: 3 },
-    { id: 'table_01', label: '上段左卓', x: 3, y: 7, width: 6, height: 5 },
-    { id: 'table_02', label: '上段中央卓', x: 12, y: 7, width: 6, height: 5 },
-    { id: 'table_03', label: '下段左卓', x: 4, y: 13, width: 6, height: 5 },
-    { id: 'table_04', label: '下段右卓', x: 21, y: 13, width: 7, height: 5 },
-    { id: 'magazine_rack', label: '雑誌ラック', x: 24, y: 5, width: 3, height: 3 },
-    { id: 'sofa', label: 'ソファ', x: 26, y: 6, width: 4, height: 4 },
-    { id: 'vending_machine', label: '自販機', x: 28, y: 4, width: 2, height: 4 },
-    { id: 'shoe_rack', label: '下駄箱', x: 0, y: 18, width: 9, height: 2 },
-    { id: 'ranking_board', label: '本日の勝者ボード', x: 26, y: 16, width: 4, height: 4 },
-    { id: 'coat_rack', label: 'コート掛け', x: 21, y: 2, width: 2, height: 4 },
-    { id: 'potted_plant_right', label: '右観葉植物', x: 19, y: 2, width: 2, height: 4 },
-    { id: 'potted_plant_bottom_left', label: '左下観葉植物', x: 9, y: 17, width: 2, height: 2 },
+    { id: 'left_bookshelf', label: '左側本棚と壁面', x: 0, y: 0, width: 8, height: 8 },
+    { id: 'left_sofa', label: '左側ソファと待合テーブル', x: 0, y: 9, width: 6, height: 5 },
+    { id: 'counter', label: '受付カウンター', x: 8, y: 2, width: 12, height: 3 },
+    { id: 'table_01', label: '上段左卓と椅子', x: 8, y: 5, width: 7, height: 6 },
+    { id: 'table_02', label: '上段右卓と椅子', x: 16, y: 5, width: 8, height: 6 },
+    { id: 'table_03', label: '下段左卓と椅子', x: 6, y: 10, width: 8, height: 7 },
+    { id: 'table_04', label: '下段右卓と椅子', x: 16, y: 10, width: 8, height: 7 },
+    { id: 'right_wall', label: '右側壁面と窓', x: 26, y: 0, width: 4, height: 7 },
+    { id: 'bottom_left_wall', label: '入口左側の壁', x: 0, y: 17, width: 11, height: 3 },
+    { id: 'bottom_right_wall', label: '入口右側の壁', x: 19, y: 17, width: 11, height: 3 },
   ],
   interaction_points: {
     owner_counter_talk: {
       x: 12,
-      y: 4,
-      width: 5,
+      y: 5,
+      width: 6,
       height: 2,
       npc_id: 'kurokawa',
     },
@@ -432,10 +428,10 @@ export const HAKURYUTEI_MAP_SPEC: HakuryuteiMapSpec = {
   spawn_points: {
     player_entrance: { x: 15, y: 18 },
     owner_counter: { x: 14, y: 2 },
-    kenta_intro: { x: 9, y: 8 },
+    kenta_intro: { x: 7, y: 9 },
     takeji_regular: { x: 3, y: 15 },
-    regular_sofa: { x: 27, y: 7 },
-    reina_showdown: { x: 24, y: 14 },
+    regular_sofa: { x: 25, y: 8 },
+    reina_showdown: { x: 24, y: 12 },
   },
   stage_layouts: {
     tutorial_before: {
@@ -453,12 +449,12 @@ export const HAKURYUTEI_MAP_SPEC: HakuryuteiMapSpec = {
         },
         {
           npc_id: 'kenta',
-          position: { x: 9, y: 8 },
+          position: { x: 7, y: 9 },
           facing: 'right',
           sprite: 'boyfriend',
           zone: 'table_area',
           behavior: '美咲を卓へ案内する。',
-          notes: ['主人公より半歩先に立たせ、導線役を明確にする。'],
+          notes: ['卓上ではなく左側通路に立たせ、受付への主導線を塞がない。'],
         },
         {
           npc_id: 'takeji',
@@ -492,8 +488,8 @@ export const HAKURYUTEI_MAP_SPEC: HakuryuteiMapSpec = {
         },
         {
           npc_id: 'kenta',
-          position: { x: 11, y: 11 },
-          facing: 'right',
+          position: { x: 14, y: 11 },
+          facing: 'up',
           sprite: 'boyfriend',
           zone: 'center_area',
           behavior: '少し離れて初対局を見守る。',
@@ -531,8 +527,8 @@ export const HAKURYUTEI_MAP_SPEC: HakuryuteiMapSpec = {
         },
         {
           npc_id: 'kenta',
-          position: { x: 10, y: 5 },
-          facing: 'up',
+          position: { x: 20, y: 4 },
+          facing: 'left',
           sprite: 'boyfriend',
           zone: 'reception',
           behavior: '黒川の様子を気にして受付付近に寄る。',
@@ -540,7 +536,7 @@ export const HAKURYUTEI_MAP_SPEC: HakuryuteiMapSpec = {
         },
         {
           npc_id: 'takeji',
-          position: { x: 23, y: 8 },
+          position: { x: 24, y: 8 },
           facing: 'left',
           sprite: 'regular',
           zone: 'waiting_area',
@@ -570,7 +566,7 @@ export const HAKURYUTEI_MAP_SPEC: HakuryuteiMapSpec = {
         },
         {
           npc_id: 'takeji',
-          position: { x: 23, y: 10 },
+          position: { x: 24, y: 10 },
           facing: 'left',
           sprite: 'regular',
           zone: 'waiting_area',
@@ -579,7 +575,7 @@ export const HAKURYUTEI_MAP_SPEC: HakuryuteiMapSpec = {
         },
         {
           npc_id: 'regular',
-          position: { x: 27, y: 7 },
+          position: { x: 25, y: 8 },
           facing: 'left',
           sprite: 'customer',
           zone: 'waiting_area',
@@ -600,7 +596,7 @@ export const HAKURYUTEI_MAP_SPEC: HakuryuteiMapSpec = {
       npc_layouts: [
         {
           npc_id: 'takeji',
-          position: { x: 18, y: 11 },
+          position: { x: 14, y: 11 },
           facing: 'left',
           sprite: 'regular',
           zone: 'center_area',
@@ -630,7 +626,7 @@ export const HAKURYUTEI_MAP_SPEC: HakuryuteiMapSpec = {
       npc_layouts: [
         {
           npc_id: 'takeji',
-          position: { x: 23, y: 10 },
+          position: { x: 24, y: 10 },
           facing: 'left',
           sprite: 'regular',
           zone: 'waiting_area',
@@ -639,7 +635,7 @@ export const HAKURYUTEI_MAP_SPEC: HakuryuteiMapSpec = {
         },
         {
           npc_id: 'regular',
-          position: { x: 27, y: 7 },
+          position: { x: 25, y: 8 },
           facing: 'left',
           sprite: 'customer',
           zone: 'waiting_area',
@@ -648,7 +644,7 @@ export const HAKURYUTEI_MAP_SPEC: HakuryuteiMapSpec = {
         },
         {
           npc_id: 'reina',
-          position: { x: 23, y: 12 },
+          position: { x: 24, y: 12 },
           facing: 'left',
           sprite: 'rival',
           zone: 'table_area',
@@ -669,7 +665,7 @@ export const HAKURYUTEI_MAP_SPEC: HakuryuteiMapSpec = {
       npc_layouts: [
         {
           npc_id: 'kenta',
-          position: { x: 8, y: 12 },
+          position: { x: 14, y: 13 },
           facing: 'right',
           sprite: 'boyfriend',
           zone: 'table_area',
@@ -678,7 +674,7 @@ export const HAKURYUTEI_MAP_SPEC: HakuryuteiMapSpec = {
         },
         {
           npc_id: 'takeji',
-          position: { x: 20, y: 11 },
+          position: { x: 14, y: 11 },
           facing: 'left',
           sprite: 'regular',
           zone: 'center_area',
@@ -687,7 +683,7 @@ export const HAKURYUTEI_MAP_SPEC: HakuryuteiMapSpec = {
         },
         {
           npc_id: 'regular',
-          position: { x: 27, y: 7 },
+          position: { x: 25, y: 8 },
           facing: 'down',
           sprite: 'customer',
           zone: 'waiting_area',
@@ -696,7 +692,7 @@ export const HAKURYUTEI_MAP_SPEC: HakuryuteiMapSpec = {
         },
         {
           npc_id: 'reina',
-          position: { x: 18, y: 9 },
+          position: { x: 24, y: 12 },
           facing: 'left',
           sprite: 'rival',
           zone: 'center_area',
@@ -726,7 +722,7 @@ export const HAKURYUTEI_MAP_SPEC: HakuryuteiMapSpec = {
         },
         {
           npc_id: 'kenta',
-          position: { x: 9, y: 12 },
+          position: { x: 14, y: 13 },
           facing: 'right',
           sprite: 'boyfriend',
           zone: 'table_area',
@@ -735,7 +731,7 @@ export const HAKURYUTEI_MAP_SPEC: HakuryuteiMapSpec = {
         },
         {
           npc_id: 'takeji',
-          position: { x: 21, y: 11 },
+          position: { x: 14, y: 11 },
           facing: 'left',
           sprite: 'regular',
           zone: 'center_area',
@@ -744,7 +740,7 @@ export const HAKURYUTEI_MAP_SPEC: HakuryuteiMapSpec = {
         },
         {
           npc_id: 'regular',
-          position: { x: 27, y: 7 },
+          position: { x: 25, y: 8 },
           facing: 'left',
           sprite: 'customer',
           zone: 'waiting_area',

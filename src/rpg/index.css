@@ -221,9 +221,17 @@
 /* 黒川（店主）: カウンター越し表示のため小さめ・奥寄りz-index */
 .rpg-sprite.is-image-npc.sprite-owner {
   z-index: 9;
-  width: clamp(52px, 8%, 96px);
-  height: clamp(70px, 14%, 130px);
+  width: clamp(76px, 11%, 132px);
+  height: clamp(104px, 22%, 180px);
   transition: none; /* 黒川は動かない */
+}
+
+.rpg-sprite.is-image-npc.sprite-owner .sprite-frame-image {
+  clip-path: inset(0 0 22% 0);
+}
+
+.rpg-sprite.is-image-npc.sprite-owner .sprite-shadow {
+  display: none;
 }
 
 /* 画像NPC用シャドウ */
