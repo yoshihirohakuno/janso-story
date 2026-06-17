@@ -45,7 +45,7 @@ const NPC_FALLBACKS: Record<CharacterId, { name: string; role: string }> = {
   misaki: { name: '美咲', role: '主人公' },
   kenta: { name: '健太', role: '彼氏' },
   kurokawa: { name: '黒川', role: '三元楼 店主' },
-  takeji: { name: 'タケ爺', role: '常連客' },
+  takeji: { name: 'ヤスおじさん', role: '常連客' },
   reina: { name: '氷室レイナ', role: '最初のライバル' },
   regular: { name: '常連のジロー', role: '近所の打ち手' },
 };
@@ -253,7 +253,12 @@ export const getOpeningSceneDialogue = (): NonNullable<DialogueState['speakerLin
   {
     npcId: 'kenta',
     characterName: '健太',
-    text: '（リーチ……あ、まだ打ってない）',
+    text: 'お、面白そう。麻雀打てるならなんでもいいよ。',
+  },
+  {
+    npcId: 'misaki',
+    characterName: '美咲',
+    text: '健太くん、話の重みを理解して……',
     choices: ['……考えてみます', 'いえ、無理です'],
   },
 ];
@@ -286,7 +291,22 @@ export const getOpeningScene6Dialogue = (): NonNullable<DialogueState['speakerLi
   {
     npcId: 'kenta',
     characterName: '健太',
-    text: '大丈夫だって！　黒川さん教えてくれるから！',
+    text: '楽しそうじゃん！　俺も打つ打つ！',
+  },
+  {
+    npcId: 'misaki',
+    characterName: '美咲',
+    text: '健太くんは呼ばれてないでしょ！',
+  },
+  {
+    npcId: 'kurokawa',
+    characterName: '黒川',
+    text: 'おい、ヤス。卓が足りん。付き合え。',
+  },
+  {
+    npcId: 'takeji',
+    characterName: 'ヤスおじさん',
+    text: 'ええよ。',
   },
 ];
 
@@ -309,6 +329,11 @@ export const getPostMatchDialogue = (victory: boolean): NonNullable<DialogueStat
           text: 'うむ。これは思った以上に……うむ。',
         },
         {
+          npcId: 'takeji',
+          characterName: 'ヤスおじさん',
+          text: '（ぼそっと）……牌、おかしかったんちゃうか。',
+        },
+        {
           npcId: 'misaki',
           characterName: '美咲',
           text: '（なんか、ちょっと……面白いかも）',
@@ -324,6 +349,11 @@ export const getPostMatchDialogue = (victory: boolean): NonNullable<DialogueStat
           npcId: 'misaki',
           characterName: '美咲',
           text: '負けたのに褒められると、ちょっと悔しいです……',
+        },
+        {
+          npcId: 'takeji',
+          characterName: 'ヤスおじさん',
+          text: '（ぼそっと）……牌、おかしかったんちゃうか。',
         },
         {
           npcId: 'kurokawa',
@@ -389,9 +419,44 @@ export const getPostMatchScene10Dialogue = (): NonNullable<DialogueState['speake
     text: 'よい。今日からこの店は、おぬしのものじゃ。',
   },
   {
+    npcId: 'takeji',
+    characterName: 'ヤスおじさん',
+    text: 'ルールはじいさ……黒川さんが言うた通りや。あとは打って、店直して、また打つだけや。',
+  },
+  {
+    npcId: 'misaki',
+    characterName: '美咲',
+    text: 'シンプルなんですね。',
+  },
+  {
+    npcId: 'takeji',
+    characterName: 'ヤスおじさん',
+    text: 'シンプルやで。ただし牌がおかしい日もある。',
+  },
+  {
+    npcId: 'misaki',
+    characterName: '美咲',
+    text: 'それさっきも言ってましたよね！？',
+  },
+  {
+    npcId: 'kenta',
+    characterName: '健太',
+    text: 'ここのお茶うまいな。',
+  },
+  {
+    npcId: 'misaki',
+    characterName: '美咲',
+    text: 'そこは反応するところじゃない。',
+  },
+  {
     npcId: 'misaki',
     characterName: '美咲',
     text: '（やる気が出てきた……これも経営学部の血か……？）',
+  },
+  {
+    npcId: 'misaki',
+    characterName: 'ナレーション',
+    text: 'こうして美咲の、誰も頼んでいない雀荘経営がはじまった。',
   },
 ];
 

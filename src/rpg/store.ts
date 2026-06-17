@@ -154,7 +154,11 @@ const savedState = readSavedState();
 
 export const useRpgStore = create<RpgStore>((set, get) => ({
   ...mergeState(savedState),
-  npcStates: createStageNpcRuntimeStates(mergeState(savedState).storyStage),
+  npcStates: createStageNpcRuntimeStates(mergeState(savedState).storyStage).map((npc) => (
+    npc.id === 'kenta' && !mergeState(savedState).openingCutscenePlayed
+      ? { ...npc, position: { x: 15, y: 17 }, facing: 'up' as Direction }
+      : npc
+  )),
   dialogue: null,
   statusMessage: savedState
     ? '保存データを読み込みました。'
@@ -335,7 +339,7 @@ export const useRpgStore = create<RpgStore>((set, get) => ({
       currentMatch: {
         id: 'tutorial',
         title: '三元楼 初めての一局',
-        opponentNames: ['健太', 'タケ爺', '黒川'],
+        opponentNames: ['健太', 'ヤスおじさん', '黒川'],
       },
       dialogue: null,
       statusMessage: '卓につきました。初回対局を開始します。',
@@ -471,9 +475,15 @@ export const useRpgStore = create<RpgStore>((set, get) => ({
 
   resetGame: () => {
     removeSavedState();
+    const defaultState = createDefaultState();
+    const initialNpcStates = createStageNpcRuntimeStates(defaultState.storyStage).map((npc) => (
+      npc.id === 'kenta' && !defaultState.openingCutscenePlayed
+        ? { ...npc, position: { x: 15, y: 17 }, facing: 'up' as Direction }
+        : npc
+    ));
     set({
-      ...createDefaultState(),
-      npcStates: createStageNpcRuntimeStates(createDefaultState().storyStage),
+      ...defaultState,
+      npcStates: initialNpcStates,
       dialogue: null,
       hasSave: false,
       statusMessage: 'RPGプロトタイプを最初から開始しました。',

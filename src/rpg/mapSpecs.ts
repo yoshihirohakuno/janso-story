@@ -556,6 +556,15 @@ export const HAKURYUTEI_MAP_SPEC: HakuryuteiMapSpec = {
       active_event_ids: [],
       npc_layouts: [
         {
+          npc_id: 'kurokawa',
+          position: { x: 14, y: 2 },
+          facing: 'down',
+          sprite: 'owner',
+          zone: 'reception',
+          behavior: 'カウンターの奥で構えている。',
+          notes: ['経営権譲渡後もカウンター裏に残り、ルール等について尋ねられる。'],
+        },
+        {
           npc_id: 'kenta',
           position: { x: 18, y: 18 },
           facing: 'left',
@@ -595,6 +604,15 @@ export const HAKURYUTEI_MAP_SPEC: HakuryuteiMapSpec = {
       active_event_ids: [],
       npc_layouts: [
         {
+          npc_id: 'kurokawa',
+          position: { x: 14, y: 2 },
+          facing: 'down',
+          sprite: 'owner',
+          zone: 'reception',
+          behavior: 'カウンターの奥で構えている。',
+          notes: ['経営権譲渡後もカウンター裏に残り、ルール等について尋ねられる。'],
+        },
+        {
           npc_id: 'takeji',
           position: { x: 14, y: 11 },
           facing: 'left',
@@ -624,6 +642,15 @@ export const HAKURYUTEI_MAP_SPEC: HakuryuteiMapSpec = {
       mood: '三元楼の空気が一段冷え、店の視線が入口より奥へ集まる。',
       active_event_ids: ['tournament'],
       npc_layouts: [
+        {
+          npc_id: 'kurokawa',
+          position: { x: 14, y: 2 },
+          facing: 'down',
+          sprite: 'owner',
+          zone: 'reception',
+          behavior: 'カウンターの奥で構えている。',
+          notes: ['経営権譲渡後もカウンター裏に残り、ルール等について尋ねられる。'],
+        },
         {
           npc_id: 'takeji',
           position: { x: 24, y: 10 },
@@ -663,6 +690,15 @@ export const HAKURYUTEI_MAP_SPEC: HakuryuteiMapSpec = {
       mood: '店内が大会前夜のような高揚に包まれ、会話の密度が上がる。',
       active_event_ids: ['tournament'],
       npc_layouts: [
+        {
+          npc_id: 'kurokawa',
+          position: { x: 14, y: 2 },
+          facing: 'down',
+          sprite: 'owner',
+          zone: 'reception',
+          behavior: 'カウンターの奥で構えている。',
+          notes: ['経営権譲渡後もカウンター裏に残り、ルール等について尋ねられる。'],
+        },
         {
           npc_id: 'kenta',
           position: { x: 14, y: 13 },

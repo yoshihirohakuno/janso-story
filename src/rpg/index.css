@@ -202,8 +202,8 @@
   overflow: visible;
   justify-self: auto;
   align-self: auto;
-  /* スムーズ移動アニメーション（NPC移動周期380msより少し短く） */
-  transition: left 360ms linear, top 360ms linear;
+  /* スムーズ移動アニメーション（プレイヤーと同じ230msに統一） */
+  transition: left 230ms linear, top 230ms linear;
 }
 
 /* 画像NPCのsprite-frame-imageはボトム基準で表示 */
@@ -397,8 +397,12 @@
   animation: playerWalk 230ms steps(2) infinite;
 }
 
-.rpg-sprite.is-moving:not(.is-player) {
+.rpg-sprite.is-moving:not(.is-player):not(.is-image-npc) {
   animation: npcWalk 0.38s steps(2) infinite;
+}
+
+.rpg-sprite.is-image-npc.is-moving .sprite-frame-image {
+  animation: npcWalk 230ms steps(2) infinite;
 }
 
 .rpg-sprite.is-target .sprite-shadow {

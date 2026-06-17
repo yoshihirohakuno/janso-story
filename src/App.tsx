@@ -64,7 +64,7 @@ export const App: React.FC = () => {
 
   const handleStartTutorialMatch = () => {
     setAppMode('mahjongFromRpg');
-    setupNewGame(['美咲', '健太', 'タケ爺', '黒川'], [false, true, true, true]);
+    setupNewGame(['美咲', '健太', 'ヤスおじさん', '黒川'], [false, true, true, true]);
   };
 
   const handleRpgMatchComplete = (result: RpgMatchResult) => {

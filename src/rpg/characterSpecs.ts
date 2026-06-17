@@ -1257,9 +1257,9 @@ export const CHARACTER_SPECS: Record<CharacterSpecId, CharacterSpec> = {
     id: 'char_takeji',
     runtime_id: 'takeji',
     appearance: {
-      display_name: 'タケ爺',
-      reading: 'たけじい',
-      age: 70,
+      display_name: 'ヤスおじさん',
+      reading: 'やすおじさん',
+      age: 55,
       height_cm: 162,
       build: '小柄でやや前屈み',
       silhouette: [
