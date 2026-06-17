@@ -421,7 +421,7 @@ export const HAKURYUTEI_MAP_SPEC: HakuryuteiMapSpec = {
       x: 12,
       y: 5,
       width: 6,
-      height: 2,
+      height: 3,
       npc_id: 'kurokawa',
     },
   },

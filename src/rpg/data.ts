@@ -7,6 +7,7 @@ import {
 } from './mapSpecs';
 import type {
   CharacterId,
+  DialogueState,
   Direction,
   Position,
   RpgNpc,
@@ -168,6 +169,232 @@ const dialogueMap: Record<CharacterId, Partial<Record<StoryStage, string[]>>> = 
     ],
   },
 };
+
+export const getOpeningSceneDialogue = (): NonNullable<DialogueState['speakerLines']> => [
+  // シーン2
+  {
+    npcId: 'kenta',
+    characterName: '健太',
+    text: 'おーい黒川さん！　彼女連れてきました！',
+  },
+  {
+    npcId: 'kurokawa',
+    characterName: '黒川',
+    text: 'ほう。彼女さん……初めてかね？',
+  },
+  {
+    npcId: 'misaki',
+    characterName: '美咲',
+    text: 'あ、はい。田中美咲です。よろしくお願いします。',
+  },
+  // シーン3
+  {
+    npcId: 'kurokawa',
+    characterName: '黒川',
+    text: '田中さんは、お仕事は……いや、学生さんかね？',
+  },
+  {
+    npcId: 'misaki',
+    characterName: '美咲',
+    text: '大学2年です。',
+  },
+  {
+    npcId: 'kenta',
+    characterName: '健太',
+    text: '経営学部なんですよ、美咲！',
+  },
+  // シーン4
+  {
+    npcId: 'kurokawa',
+    characterName: '黒川',
+    text: '……！！　経営学部とな？？',
+  },
+  {
+    npcId: 'misaki',
+    characterName: '美咲',
+    text: 'え、はい……それが何か……？',
+  },
+  {
+    npcId: 'kurokawa',
+    characterName: '黒川',
+    text: 'おお……おお！　ついに現れたか……！',
+  },
+  {
+    npcId: 'kenta',
+    characterName: '健太',
+    text: '（黒川さん、テンション高くなった？）',
+  },
+  {
+    npcId: 'kurokawa',
+    characterName: '黒川',
+    text: '長きにわたり、わしはこの店を立て直せる者を待っておった。',
+  },
+  {
+    npcId: 'kurokawa',
+    characterName: '黒川',
+    text: '経営学部……まさに、伝説に語られし者ぞ。',
+  },
+  {
+    npcId: 'misaki',
+    characterName: '美咲',
+    text: '伝説は大げさです！　ただの2年生です！',
+  },
+  // シーン5
+  {
+    npcId: 'kurokawa',
+    characterName: '黒川',
+    text: '田中よ。単刀直入に聞こう。',
+  },
+  {
+    npcId: 'kurokawa',
+    characterName: '黒川',
+    text: 'この店、譲り受けてみる気はないかね？',
+  },
+  {
+    npcId: 'kenta',
+    characterName: '健太',
+    text: '（リーチ……あ、まだ打ってない）',
+    choices: ['……考えてみます', 'いえ、無理です'],
+  },
+];
+
+export const getOpeningLoopDialogue = (): NonNullable<DialogueState['speakerLines']> => [
+  {
+    npcId: 'kurokawa',
+    characterName: '黒川',
+    text: 'そうか。……では、もう一度聞こう。経営学部の者よ、この店を継いでくれぬか？',
+    choices: ['……考えてみます', 'いえ、無理です'],
+  },
+];
+
+export const getOpeningScene6Dialogue = (): NonNullable<DialogueState['speakerLines']> => [
+  {
+    npcId: 'kurokawa',
+    characterName: '黒川',
+    text: 'よし。では、その力——まことに伝説の者か——',
+  },
+  {
+    npcId: 'kurokawa',
+    characterName: '黒川',
+    text: 'わしと一局、見せてみよ。',
+  },
+  {
+    npcId: 'misaki',
+    characterName: '美咲',
+    text: 'え、私何も知らな——',
+  },
+  {
+    npcId: 'kenta',
+    characterName: '健太',
+    text: '大丈夫だって！　黒川さん教えてくれるから！',
+  },
+];
+
+export const getPostMatchDialogue = (victory: boolean): NonNullable<DialogueState['speakerLines']> => {
+  const scene8: NonNullable<DialogueState['speakerLines']> = victory
+    ? [
+        {
+          npcId: 'kurokawa',
+          characterName: '黒川',
+          text: '……勝ったか。初めてで、勝ったか。',
+        },
+        {
+          npcId: 'misaki',
+          characterName: '美咲',
+          text: 'よくわからないまま勝っちゃいました……',
+        },
+        {
+          npcId: 'kurokawa',
+          characterName: '黒川',
+          text: 'うむ。これは思った以上に……うむ。',
+        },
+        {
+          npcId: 'misaki',
+          characterName: '美咲',
+          text: '（なんか、ちょっと……面白いかも）',
+        },
+      ]
+    : [
+        {
+          npcId: 'kurokawa',
+          characterName: '黒川',
+          text: '負けたな。じゃが——筋は、悪くない。',
+        },
+        {
+          npcId: 'misaki',
+          characterName: '美咲',
+          text: '負けたのに褒められると、ちょっと悔しいです……',
+        },
+        {
+          npcId: 'kurokawa',
+          characterName: '黒川',
+          text: 'その悔しさが、ちょうどよい。',
+        },
+        {
+          npcId: 'misaki',
+          characterName: '美咲',
+          text: '（次は勝ちたい、って思ってる私……？）',
+        },
+      ];
+
+  const scene9: NonNullable<DialogueState['speakerLines']> = [
+    // シーン9
+    {
+      npcId: 'kurokawa',
+      characterName: '黒川',
+      text: 'よし。少しはやる気になったようじゃな。ならば——この店のルールを教えておこう。',
+    },
+    {
+      npcId: 'kurokawa',
+      characterName: '黒川',
+      text: '（黄ばんだ規約の紙を提示した） 麻雀で得た点数が、そのまま店を直す「両」になる。ただし——これは賭け麻雀ではないぞい。',
+    },
+    {
+      npcId: 'misaki',
+      characterName: '美咲',
+      text: 'いや、賭けと何が違うんですか！？',
+    },
+    {
+      npcId: 'kurokawa',
+      characterName: '黒川',
+      text: '細かいことを気にするな。経営学部の悪いクセじゃ。',
+    },
+    {
+      npcId: 'kurokawa',
+      characterName: '黒川',
+      text: 'どうじゃ？ 三元楼の経営を引き受けてくれるかね？',
+      choices: ['引き受ける', '断る'],
+    },
+  ];
+
+  return [
+    ...scene8,
+    ...scene9,
+  ];
+};
+
+export const getPostMatchLoopDialogue = (): NonNullable<DialogueState['speakerLines']> => [
+  {
+    npcId: 'kurokawa',
+    characterName: '黒川',
+    text: 'そうか。……では、もう一度聞こう。',
+    choices: ['引き受ける', '断る'],
+  },
+];
+
+export const getPostMatchScene10Dialogue = (): NonNullable<DialogueState['speakerLines']> => [
+  {
+    npcId: 'kurokawa',
+    characterName: '黒川',
+    text: 'よい。今日からこの店は、おぬしのものじゃ。',
+  },
+  {
+    npcId: 'misaki',
+    characterName: '美咲',
+    text: '（やる気が出てきた……これも経営学部の血か……？）',
+  },
+];
+
 
 export const getDialogues = (npcId: CharacterId, stage: StoryStage): string[] => {
   const stageDialogues = dialogueMap[npcId]?.[stage];

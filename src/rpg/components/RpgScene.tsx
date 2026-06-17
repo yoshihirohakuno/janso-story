@@ -45,6 +45,16 @@ interface SpriteProps {
   motionOffset?: Position;
 }
 
+interface OpeningCutsceneActor {
+  position: Position;
+  facing: Direction;
+}
+
+interface OpeningCutsceneStep {
+  misaki: OpeningCutsceneActor;
+  kenta: OpeningCutsceneActor;
+}
+
 const MISAKI_FRAME_NUMBERS: Record<Direction, number[]> = {
   up: [1, 2, 3, 4],
   right: [5, 6, 7, 8],
@@ -78,6 +88,18 @@ const MOVEMENT_KEYS: Record<string, Direction> = {
   arrowright: 'right',
   d: 'right',
 };
+
+const OPENING_CUTSCENE_STEP_MS = 360;
+const OPENING_CUTSCENE_STEPS: OpeningCutsceneStep[] = Array.from({ length: 13 }, (_, index) => ({
+  misaki: {
+    position: { x: 15, y: Math.max(7, 18 - index) },
+    facing: 'up',
+  },
+  kenta: {
+    position: { x: 15, y: Math.max(5, 17 - index) },
+    facing: 'up',
+  },
+}));
 
 const getMisakiFrameUrl = (facing: Direction, frameIndex: number) => {
   const frameNumbers = MISAKI_FRAME_NUMBERS[facing];
@@ -174,13 +196,16 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
   const [playerMoving, setPlayerMoving] = useState(false);
   const [playerRenderPosition, setPlayerRenderPosition] = useState<Position | null>(null);
   const [playerMotionOffset, setPlayerMotionOffset] = useState<Position>({ x: 0, y: 0 });
+  const [openingCutscene, setOpeningCutscene] = useState<OpeningCutsceneStep | null>(null);
   // 健太のフレームアニメーション用（NPC共通のグローバルフレームカウンター）
   const [npcFrameIndex, setNpcFrameIndex] = useState(0);
   const playerMoveTimerRef = useRef<number | null>(null);
   const playerMovingRef = useRef(false);
   const heldDirectionRef = useRef<Direction | null>(null);
+  const openingCutsceneStartedRef = useRef(false);
   const {
     storyStage,
+    openingCutscenePlayed,
     ryou,
     reputation,
     storeLevel,
@@ -197,8 +222,10 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
     currentMatch,
     npcStates,
     movePlayer,
+    finishOpeningCutscene,
     startDialogue,
     advanceDialogue,
+    selectDialogueChoice,
     startTutorialMatch,
     buyUpgrade,
     saveGame,
@@ -207,6 +234,7 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
     tickNpcMovement,
   } = useRpgStore();
 
+  const openingCutsceneActive = openingCutscene != null;
   const stageLayout = useMemo(() => getHakuryuteiStageLayout(storyStage), [storyStage]);
   const currentArea = useMemo(
     () => getHakuryuteiNavigationArea(position),
@@ -218,6 +246,8 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
   );
   const targetNpc = useMemo(
     () => {
+      if (openingCutsceneActive) return null;
+
       const interactionNpcId = getHakuryuteiInteractionNpcId(position);
       if (interactionNpcId) {
         return npcStates.find((npc) => npc.id === interactionNpcId) ?? null;
@@ -234,7 +264,7 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
         (npc) => npc.position.x === nextPosition.x && npc.position.y === nextPosition.y,
       ) ?? null;
     },
-    [facing, npcStates, position],
+    [facing, npcStates, openingCutsceneActive, position],
   );
   const misakiSpec = CHARACTER_SPEC_BY_RUNTIME_ID.misaki ?? null;
   const focusedSpec = targetNpc
@@ -249,14 +279,22 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
     ? stageLayout.npc_layouts.find((layout) => layout.npc_id === targetNpc.id) ?? null
     : null;
   const activeTableCount = stageLayout.table_states.filter((table) => table.state !== 'empty').length;
+  const effectivePlayerFacing = openingCutscene?.misaki.facing ?? facing;
+  const effectivePlayerMoving = playerMoving || openingCutsceneActive;
   const misakiFrameUrl = useMemo(
-    () => getMisakiFrameUrl(facing, playerMoving ? playerFrameIndex : 0),
-    [facing, playerFrameIndex, playerMoving],
+    () => getMisakiFrameUrl(
+      effectivePlayerFacing,
+      effectivePlayerMoving ? (openingCutsceneActive ? npcFrameIndex : playerFrameIndex) : 0,
+    ),
+    [effectivePlayerFacing, effectivePlayerMoving, npcFrameIndex, openingCutsceneActive, playerFrameIndex],
   );
 
   const canStartTutorialMatch = (
-    (storyStage === 'tutorial_before' && targetNpc?.id === 'kurokawa') ||
-    storyStage === 'tutorial_match_started'
+    !openingCutsceneActive &&
+    (
+      (storyStage === 'tutorial_before' && targetNpc?.id === 'kurokawa') ||
+      storyStage === 'tutorial_match_started'
+    )
   );
 
   const moveMisaki = useCallback((direction: Direction) => {
@@ -307,13 +345,65 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
   }, []);
 
   useEffect(() => {
+    const shouldRunOpeningCutscene = (
+      storyStage === 'tutorial_before' &&
+      !openingCutscenePlayed &&
+      !currentMatch
+    );
+
+    if (!shouldRunOpeningCutscene || openingCutsceneStartedRef.current) return;
+
+    openingCutsceneStartedRef.current = true;
+    heldDirectionRef.current = null;
+    playerMovingRef.current = false;
+    setPlayerMoving(false);
+    setPlayerRenderPosition(null);
+    setPlayerMotionOffset({ x: 0, y: 0 });
+
+    let stepIndex = 0;
+    let completed = false;
+    setOpeningCutscene(OPENING_CUTSCENE_STEPS[stepIndex]);
+
+    const timer = window.setInterval(() => {
+      stepIndex += 1;
+
+      if (stepIndex >= OPENING_CUTSCENE_STEPS.length) {
+        completed = true;
+        window.clearInterval(timer);
+        setOpeningCutscene(null);
+        finishOpeningCutscene();
+        return;
+      }
+
+      setOpeningCutscene(OPENING_CUTSCENE_STEPS[stepIndex]);
+    }, OPENING_CUTSCENE_STEP_MS);
+
+    return () => {
+      window.clearInterval(timer);
+      if (!completed) {
+        openingCutsceneStartedRef.current = false;
+      }
+    };
+  }, [currentMatch, finishOpeningCutscene, openingCutscenePlayed, storyStage]);
+
+  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const key = event.key.toLowerCase();
+
+      if (openingCutsceneActive) {
+        if (MOVEMENT_KEYS[key] || key === 'enter' || key === ' ') {
+          event.preventDefault();
+        }
+        return;
+      }
 
       if (dialogue) {
         if (key === 'enter' || key === ' ') {
           event.preventDefault();
-          advanceDialogue();
+          const activeLine = dialogue.speakerLines?.[dialogue.currentLine];
+          if (!activeLine?.choices) {
+            advanceDialogue();
+          }
         }
         return;
       }
@@ -350,7 +440,7 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('blur', releaseHeldDirection);
     };
-  }, [advanceDialogue, dialogue, moveMisaki, startDialogue, targetNpc]);
+  }, [advanceDialogue, dialogue, moveMisaki, openingCutsceneActive, startDialogue, targetNpc]);
 
   useEffect(() => {
     if (dialogue) {
@@ -359,6 +449,8 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
   }, [dialogue]);
 
   useEffect(() => {
+    if (openingCutsceneActive) return;
+
     const timer = window.setInterval(() => {
       const heldDirection = heldDirectionRef.current;
       if (heldDirection) {
@@ -367,15 +459,17 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
     }, 36);
 
     return () => window.clearInterval(timer);
-  }, [moveMisaki]);
+  }, [moveMisaki, openingCutsceneActive]);
 
   useEffect(() => {
+    if (openingCutsceneActive) return;
+
     const timer = window.setInterval(() => {
       tickNpcMovement();
     }, 380);
 
     return () => window.clearInterval(timer);
-  }, [tickNpcMovement]);
+  }, [openingCutsceneActive, tickNpcMovement]);
 
   // NPCフレームアニメーションタイマー（380ms = NPC移動周期に合わせる）
   useEffect(() => {
@@ -385,12 +479,18 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
     return () => window.clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    if (storyStage === 'tutorial_match_started' && currentMatch) {
+      onStartTutorialMatch();
+    }
+  }, [storyStage, currentMatch, onStartTutorialMatch]);
+
   const handleStartTutorialMatch = () => {
     startTutorialMatch();
-    onStartTutorialMatch();
   };
 
   const holdDpadDirection = (direction: Direction) => {
+    if (openingCutsceneActive) return;
     heldDirectionRef.current = direction;
     moveMisaki(direction);
   };
@@ -401,6 +501,13 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
     }
   };
 
+  const renderedPlayerPosition = openingCutscene?.misaki.position ?? playerRenderPosition ?? position;
+  const activeDialogueLine = dialogue?.speakerLines?.[dialogue.currentLine] ?? null;
+  const dialogueNpcId = activeDialogueLine?.npcId ?? dialogue?.npcId ?? 'kurokawa';
+  const dialogueCharacterName = activeDialogueLine?.characterName ?? dialogue?.characterName ?? '';
+  const dialogueText = activeDialogueLine?.text ?? (dialogue ? dialogue.lines[dialogue.currentLine] : '');
+  const dialogueLineCount = dialogue?.speakerLines?.length ?? dialogue?.lines.length ?? 0;
+
   return (
     <div className="rpg-shell">
       <header className="rpg-topbar">
@@ -410,15 +517,15 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
           <p>{STORY_LABELS[storyStage]}</p>
         </div>
         <div className="rpg-top-actions">
-          <button className="rpg-command-btn" type="button" onClick={saveGame}>
+          <button className="rpg-command-btn" type="button" onClick={saveGame} disabled={openingCutsceneActive}>
             <Save size={16} />
             セーブ
           </button>
-          <button className="rpg-command-btn" type="button" onClick={loadGame} disabled={!hasSave}>
+          <button className="rpg-command-btn" type="button" onClick={loadGame} disabled={!hasSave || openingCutsceneActive}>
             <RotateCcw size={16} />
             ロード
           </button>
-          <button className="rpg-command-btn ghost" type="button" onClick={onOpenMahjongLobby}>
+          <button className="rpg-command-btn ghost" type="button" onClick={onOpenMahjongLobby} disabled={openingCutsceneActive}>
             <DoorOpen size={16} />
             対局ロビー
           </button>
@@ -436,21 +543,29 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
               }}
             >
               {npcStates.map((npc) => {
+                const renderedNpc = openingCutscene && npc.id === 'kenta'
+                  ? {
+                    ...npc,
+                    position: openingCutscene.kenta.position,
+                    facing: openingCutscene.kenta.facing,
+                    moving: true,
+                  }
+                  : npc;
                 // 健太・黒川は画像ベーススプライト（美咲と同じ16枚PNG方式）
-                const npcFrameUrl = npc.id === 'kenta'
-                  ? getKentaFrameUrl(npc.facing, npc.moving ? npcFrameIndex : 0)
-                  : npc.id === 'kurokawa'
-                    ? getKurakawaFrameUrl(npc.facing, npc.moving ? npcFrameIndex : 0)
+                const npcFrameUrl = renderedNpc.id === 'kenta'
+                  ? getKentaFrameUrl(renderedNpc.facing, renderedNpc.moving ? npcFrameIndex : 0)
+                  : renderedNpc.id === 'kurokawa'
+                    ? getKurakawaFrameUrl(renderedNpc.facing, renderedNpc.moving ? npcFrameIndex : 0)
                     : null;
                 return (
                   <PixelSprite
-                    key={npc.id}
-                    name={npc.name}
-                    position={npc.position}
-                    facing={npc.facing}
-                    sprite={npc.sprite}
-                    isMoving={npc.moving}
-                    isTarget={targetNpc?.id === npc.id}
+                    key={renderedNpc.id}
+                    name={renderedNpc.name}
+                    position={renderedNpc.position}
+                    facing={renderedNpc.facing}
+                    sprite={renderedNpc.sprite}
+                    isMoving={renderedNpc.moving}
+                    isTarget={!openingCutsceneActive && targetNpc?.id === renderedNpc.id}
                     spriteFrameUrl={npcFrameUrl}
                   />
                 );
@@ -458,13 +573,13 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
 
               <PixelSprite
                 name="美咲"
-                position={playerRenderPosition ?? position}
-                facing={facing}
+                position={renderedPlayerPosition}
+                facing={effectivePlayerFacing}
                 sprite="hero"
                 isPlayer
-                isMoving={playerMoving}
+                isMoving={effectivePlayerMoving}
                 spriteFrameUrl={misakiFrameUrl}
-                motionOffset={playerMotionOffset}
+                motionOffset={openingCutsceneActive ? { x: 0, y: 0 } : playerMotionOffset}
               />
             </div>
           </div>
@@ -472,14 +587,17 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
           <div className="rpg-map-footer">
             <div className="rpg-context-line">
               <Gamepad2 size={16} />
-              {targetNpc
-                ? `${targetNpc.name}に話しかけられます`
-                : `${currentArea?.label ?? HAKURYUTEI_MAP_SPEC.name}を移動中`}
+              {openingCutsceneActive
+                ? '健太に連れられてカウンターへ移動中'
+                : targetNpc
+                  ? `${targetNpc.name}に話しかけられます`
+                  : `${currentArea?.label ?? HAKURYUTEI_MAP_SPEC.name}を移動中`}
             </div>
             <nav className="rpg-dpad" aria-label="移動操作">
               <button
                 type="button"
                 aria-label="上へ"
+                disabled={openingCutsceneActive}
                 onPointerDown={() => holdDpadDirection('up')}
                 onPointerUp={() => releaseDpadDirection('up')}
                 onPointerLeave={() => releaseDpadDirection('up')}
@@ -490,6 +608,7 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
               <button
                 type="button"
                 aria-label="左へ"
+                disabled={openingCutsceneActive}
                 onPointerDown={() => holdDpadDirection('left')}
                 onPointerUp={() => releaseDpadDirection('left')}
                 onPointerLeave={() => releaseDpadDirection('left')}
@@ -500,6 +619,7 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
               <button
                 type="button"
                 aria-label="下へ"
+                disabled={openingCutsceneActive}
                 onPointerDown={() => holdDpadDirection('down')}
                 onPointerUp={() => releaseDpadDirection('down')}
                 onPointerLeave={() => releaseDpadDirection('down')}
@@ -510,6 +630,7 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
               <button
                 type="button"
                 aria-label="右へ"
+                disabled={openingCutsceneActive}
                 onPointerDown={() => holdDpadDirection('right')}
                 onPointerUp={() => releaseDpadDirection('right')}
                 onPointerLeave={() => releaseDpadDirection('right')}
@@ -522,7 +643,7 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
               <button
                 className="rpg-command-btn"
                 type="button"
-                disabled={!targetNpc}
+                disabled={!targetNpc || openingCutsceneActive}
                 onClick={() => targetNpc && startDialogue(targetNpc.id, targetNpc.name)}
               >
                 <MessageCircle size={16} />
@@ -531,7 +652,7 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
               <button
                 className="rpg-command-btn primary"
                 type="button"
-                disabled={!canStartTutorialMatch}
+                disabled={!canStartTutorialMatch || openingCutsceneActive}
                 onClick={handleStartTutorialMatch}
               >
                 <Trophy size={16} />
@@ -663,7 +784,7 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
                     key={upgradeId}
                     className={`rpg-upgrade-btn ${purchased ? 'purchased' : ''}`}
                     type="button"
-                    disabled={purchased}
+                    disabled={purchased || openingCutsceneActive}
                     onClick={() => buyUpgrade(upgradeId as keyof typeof upgrades)}
                   >
                     <span>
@@ -685,7 +806,7 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
             <div className="rpg-save-meta">
               {lastSavedAt ? `最終保存: ${new Date(lastSavedAt).toLocaleString('ja-JP')}` : '未保存'}
             </div>
-            <button className="rpg-reset-btn" type="button" onClick={resetGame}>
+            <button className="rpg-reset-btn" type="button" onClick={resetGame} disabled={openingCutsceneActive}>
               最初から
             </button>
           </section>
@@ -696,17 +817,32 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
         <div className="rpg-dialogue-backdrop">
           <div className="rpg-dialogue-window">
             <img
-              key={dialogue.npcId}
+              key={dialogueNpcId}
               className="rpg-dialogue-portrait"
-              src={getPortraitUrl(dialogue.npcId)}
-              alt={dialogue.characterName}
+              src={getPortraitUrl(dialogueNpcId)}
+              alt={dialogueCharacterName}
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
-            <div className="rpg-dialogue-name">{dialogue.characterName}</div>
-            <p>{dialogue.lines[dialogue.currentLine]}</p>
-            <button type="button" onClick={advanceDialogue}>
-              {dialogue.currentLine < dialogue.lines.length - 1 ? '次へ' : '閉じる'}
-            </button>
+            <div className="rpg-dialogue-name">{dialogueCharacterName}</div>
+            <p>{dialogueText}</p>
+            {activeDialogueLine?.choices ? (
+              <div className="rpg-dialogue-choices">
+                {activeDialogueLine.choices.map((choiceText, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    className="rpg-choice-btn"
+                    onClick={() => selectDialogueChoice(idx)}
+                  >
+                    ▶ {choiceText}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <button type="button" onClick={advanceDialogue}>
+                {dialogue.currentLine < dialogueLineCount - 1 ? '次へ' : '閉じる'}
+              </button>
+            )}
           </div>
         </div>
       )}

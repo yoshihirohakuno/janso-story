@@ -2,6 +2,12 @@ import { create } from 'zustand';
 import {
   createStageNpcRuntimeStates,
   getDialogues,
+  getOpeningSceneDialogue,
+  getOpeningLoopDialogue,
+  getOpeningScene6Dialogue,
+  getPostMatchDialogue,
+  getPostMatchLoopDialogue,
+  getPostMatchScene10Dialogue,
   isBlockedPosition,
   UPGRADE_DEFS,
 } from './data';
@@ -30,6 +36,7 @@ const defaultRecords: RpgRecords = {
 
 const createDefaultState = (): RpgPersistentState => ({
   storyStage: 'tutorial_before',
+  openingCutscenePlayed: false,
   ryou: 0,
   reputation: 3,
   storeLevel: 1,
@@ -62,6 +69,7 @@ const readSavedState = (): Partial<RpgPersistentState> | null => {
 
 const toPersistentState = (state: RpgPersistentState): RpgPersistentState => ({
   storyStage: state.storyStage,
+  openingCutscenePlayed: state.openingCutscenePlayed,
   ryou: state.ryou,
   reputation: state.reputation,
   storeLevel: state.storeLevel,
@@ -128,8 +136,10 @@ interface RpgStore extends RpgPersistentState {
   statusMessage: string;
   hasSave: boolean;
   movePlayer: (direction: Direction) => boolean;
+  finishOpeningCutscene: () => void;
   startDialogue: (npcId: CharacterId, characterName: string) => void;
   advanceDialogue: () => void;
+  selectDialogueChoice: (choiceIndex: number) => void;
   closeDialogue: () => void;
   startTutorialMatch: () => void;
   applyMatchResult: (result: RpgMatchResult) => void;
@@ -171,6 +181,42 @@ export const useRpgStore = create<RpgStore>((set, get) => ({
     return true;
   },
 
+  finishOpeningCutscene: () => {
+    const finishedAt = new Date().toISOString();
+    const sceneDialogueLines = getOpeningSceneDialogue();
+    const nextNpcStates = get().npcStates.map((npc) => (
+      npc.id === 'kenta'
+        ? {
+          ...npc,
+          position: { x: 15, y: 5 },
+          facing: 'up' as Direction,
+          moving: false,
+          route: [{ x: 15, y: 5 }],
+          routeIndex: 0,
+          waitTicks: 9999,
+        }
+        : npc
+    ));
+
+    set({
+      openingCutscenePlayed: true,
+      position: { x: 15, y: 7 },
+      facing: 'up',
+      npcStates: nextNpcStates,
+      dialogue: {
+        npcId: 'kurokawa',
+        characterName: '黒川',
+        lines: sceneDialogueLines.map((line) => line.text),
+        speakerLines: sceneDialogueLines,
+        currentLine: 0,
+      },
+      statusMessage: '黒川がゆっくり顔を上げました。',
+      hasSave: true,
+      lastSavedAt: finishedAt,
+    });
+    writeSavedState(get());
+  },
+
   startDialogue: (npcId, characterName) => {
     const lines = getDialogues(npcId, get().storyStage);
     set({
@@ -187,8 +233,9 @@ export const useRpgStore = create<RpgStore>((set, get) => ({
   advanceDialogue: () => {
     const dialogue = get().dialogue;
     if (!dialogue) return;
+    const lineCount = dialogue.speakerLines?.length ?? dialogue.lines.length;
 
-    if (dialogue.currentLine < dialogue.lines.length - 1) {
+    if (dialogue.currentLine < lineCount - 1) {
       set({
         dialogue: {
           ...dialogue,
@@ -199,6 +246,82 @@ export const useRpgStore = create<RpgStore>((set, get) => ({
     }
 
     set({ dialogue: null });
+
+    const state = get();
+    if (dialogue.npcId === 'kurokawa') {
+      if (state.storyStage === 'tutorial_before') {
+        get().startTutorialMatch();
+      } else if (state.storyStage === 'tutorial_after') {
+        set({
+          storyStage: 'shop_entrusted',
+          npcStates: createStageNpcRuntimeStates('shop_entrusted'),
+          statusMessage: '三元楼の経営を引き受けました！店内を自由に探索できます。',
+        });
+        writeSavedState(get());
+      }
+    }
+  },
+
+  selectDialogueChoice: (choiceIndex: number) => {
+    const state = get();
+    const dialogue = state.dialogue;
+    if (!dialogue) return;
+
+    if (state.storyStage === 'tutorial_before') {
+      // Choice 1: Scene 5
+      if (choiceIndex === 0) {
+        // "……考えてみます" -> proceed to Scene 6
+        const scene6Lines = getOpeningScene6Dialogue();
+        set({
+          dialogue: {
+            npcId: 'kurokawa',
+            characterName: '黒川',
+            lines: scene6Lines.map((line) => line.text),
+            speakerLines: scene6Lines,
+            currentLine: 0,
+          },
+        });
+      } else {
+        // "いえ、無理です" -> loop back to Scene 5
+        const loopLines = getOpeningLoopDialogue();
+        set({
+          dialogue: {
+            npcId: 'kurokawa',
+            characterName: '黒川',
+            lines: loopLines.map((line) => line.text),
+            speakerLines: loopLines,
+            currentLine: 0,
+          },
+        });
+      }
+    } else if (state.storyStage === 'tutorial_after') {
+      // Choice 2: Scene 9
+      if (choiceIndex === 0) {
+        // "引き受ける" -> proceed to Scene 10
+        const scene10Lines = getPostMatchScene10Dialogue();
+        set({
+          dialogue: {
+            npcId: 'kurokawa',
+            characterName: '黒川',
+            lines: scene10Lines.map((line) => line.text),
+            speakerLines: scene10Lines,
+            currentLine: 0,
+          },
+        });
+      } else {
+        // "断る" -> loop back to Scene 9
+        const loopLines = getPostMatchLoopDialogue();
+        set({
+          dialogue: {
+            npcId: 'kurokawa',
+            characterName: '黒川',
+            lines: loopLines.map((line) => line.text),
+            speakerLines: loopLines,
+            currentLine: 0,
+          },
+        });
+      }
+    }
   },
 
   closeDialogue: () => {
@@ -240,19 +363,23 @@ export const useRpgStore = create<RpgStore>((set, get) => ({
       : '初回対局を終えました。悔しさも、次の一局への材料です。';
     let nextUnlocked = state.unlockedCharacters;
     let regularsGain = result.victory ? 1 : 0;
+    let postMatchDialogueObj = null;
+    let nextPosition = HAKURYUTEI_MAP_SPEC.spawn_points.player_entrance;
 
     if (result.context === 'tutorial') {
-      if (result.victory) {
-        nextStage = 'shop_entrusted';
-        nextUnlocked = unlockCharacters(state.unlockedCharacters, ['regular']);
-        nextMessage = '対局終了。黒川が奥へ引き、美咲は三元楼を任されます。';
-      } else {
-        nextStage = 'tutorial_after';
-        regularsGain = 0;
-      }
-    }
-
-    if (result.context === 'regular' && result.victory) {
+      nextStage = 'tutorial_after';
+      nextUnlocked = unlockCharacters(state.unlockedCharacters, ['regular']);
+      const postMatchLines = getPostMatchDialogue(result.victory);
+      postMatchDialogueObj = {
+        npcId: 'kurokawa' as CharacterId,
+        characterName: '黒川',
+        lines: postMatchLines.map((line) => line.text),
+        speakerLines: postMatchLines,
+        currentLine: 0,
+      };
+      nextPosition = { x: 15, y: 7 };
+      nextMessage = '対局終了。黒川の話が始まります。';
+    } else if (result.context === 'regular' && result.victory) {
       nextStage = 'regular_match_unlocked';
       nextMessage = '常連客との勝負で評判が広がりました。';
     }
@@ -267,10 +394,10 @@ export const useRpgStore = create<RpgStore>((set, get) => ({
       unlockedCharacters: nextUnlocked,
       records: nextRecords,
       currentMatch: null,
-      position: HAKURYUTEI_MAP_SPEC.spawn_points.player_entrance,
+      position: nextPosition,
       facing: 'up',
       statusMessage: nextMessage,
-      dialogue: null,
+      dialogue: postMatchDialogueObj,
     });
     writeSavedState(get());
     set({ hasSave: true, lastSavedAt: new Date().toISOString() });

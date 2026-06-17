@@ -256,8 +256,15 @@ export interface DialogueState {
   npcId: CharacterId;
   characterName: string;
   lines: string[];
+  speakerLines?: Array<{
+    npcId: CharacterId;
+    characterName: string;
+    text: string;
+    choices?: string[];
+  }>;
   currentLine: number;
 }
+
 
 export interface RpgMatchContext {
   id: 'tutorial' | 'regular' | 'rival';
@@ -284,6 +291,7 @@ export interface RpgRecords {
 
 export interface RpgPersistentState {
   storyStage: StoryStage;
+  openingCutscenePlayed: boolean;
   ryou: number;
   reputation: number;
   storeLevel: number;
