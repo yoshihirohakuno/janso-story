@@ -89,7 +89,7 @@ interface SpawnPointMap {
 
 interface HakuryuteiMapSpec {
   map_id: 'hakuryutei_main';
-  name: '白龍亭';
+  name: '三元楼';
   type: 'mahjong_parlor';
   era: '1990s_japan';
   style: 'snes_rpg';
@@ -171,7 +171,7 @@ interface HakuryuteiMapSpec {
 
 export const HAKURYUTEI_MAP_SPEC: HakuryuteiMapSpec = {
   map_id: 'hakuryutei_main',
-  name: '白龍亭',
+  name: '三元楼',
   type: 'mahjong_parlor',
   era: '1990s_japan',
   style: 'snes_rpg',
@@ -374,7 +374,7 @@ export const HAKURYUTEI_MAP_SPEC: HakuryuteiMapSpec = {
     {
       id: 'first_visit',
       trigger_zone: 'entrance',
-      summary: '主人公が健太に連れられて白龍亭へ初来店する。',
+      summary: '主人公が健太に連れられて三元楼へ初来店する。',
       stages: ['tutorial_before', 'tutorial_match_started', 'tutorial_after'],
     },
     {
@@ -625,7 +625,7 @@ export const HAKURYUTEI_MAP_SPEC: HakuryuteiMapSpec = {
       ],
     },
     rival_appeared: {
-      mood: '白龍亭の空気が一段冷え、店の視線が入口より奥へ集まる。',
+      mood: '三元楼の空気が一段冷え、店の視線が入口より奥へ集まる。',
       active_event_ids: ['tournament'],
       npc_layouts: [
         {
@@ -712,7 +712,7 @@ export const HAKURYUTEI_MAP_SPEC: HakuryuteiMapSpec = {
       ],
     },
     expansion_unlocked: {
-      mood: '経営が軌道に乗り、白龍亭が再び誇りを取り戻した状態。',
+      mood: '経営が軌道に乗り、三元楼が再び誇りを取り戻した状態。',
       active_event_ids: ['tournament'],
       npc_layouts: [
         {

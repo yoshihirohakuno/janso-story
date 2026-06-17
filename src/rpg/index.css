@@ -154,7 +154,7 @@
   border: 4px solid #2d1a0d;
   background:
     linear-gradient(180deg, rgba(255, 238, 176, 0.08), rgba(0, 0, 0, 0.04)),
-    url('/rpg/janso-parlor.png') center / cover no-repeat;
+    url('/rpg/sangenrou-interior.png') center / cover no-repeat;
   box-shadow:
     inset 0 0 0 3px #83582c,
     0 10px 24px rgba(0, 0, 0, 0.45);
@@ -743,9 +743,28 @@
   border: 4px solid #e2bd68;
   box-shadow: 0 8px 0 #0b0705, inset 0 0 0 2px rgba(255, 246, 207, 0.12);
   text-align: left;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto 1fr auto;
+  gap: 0 16px;
+}
+
+.rpg-dialogue-portrait {
+  grid-column: 1;
+  grid-row: 1 / 4;
+  width: 100px;
+  height: 130px;
+  object-fit: cover;
+  object-position: top center;
+  image-rendering: pixelated;
+  border: 2px solid rgba(226, 189, 104, 0.5);
+  background: rgba(0,0,0,0.4);
+  align-self: end;
 }
 
 .rpg-dialogue-name {
+  grid-column: 2;
+  grid-row: 1;
   display: inline-flex;
   min-width: 120px;
   padding: 5px 12px;
@@ -754,9 +773,12 @@
   border: 2px solid #f1cf76;
   color: #fff8da;
   font-weight: 800;
+  align-self: start;
 }
 
 .rpg-dialogue-window p {
+  grid-column: 2;
+  grid-row: 2;
   min-height: 48px;
   margin: 0 0 12px;
   color: #fff8df;
@@ -765,7 +787,9 @@
 }
 
 .rpg-dialogue-window button {
-  float: right;
+  grid-column: 2;
+  grid-row: 3;
+  justify-self: end;
   min-width: 90px;
 }
 

@@ -35,7 +35,7 @@ export type StoryStage =
 
 export type CharacterId = 'misaki' | 'kenta' | 'kurokawa' | 'takeji' | 'reina' | 'regular';
 
-export type UpgradeId = 'extra_table' | 'signboard' | 'drink_menu' | 'event_day';
+export type UpgradeId = 'bulb_repair' | 'wifi' | 'table_clean' | 'signboard';
 
 export interface Position {
   x: number;
@@ -284,7 +284,7 @@ export interface RpgRecords {
 
 export interface RpgPersistentState {
   storyStage: StoryStage;
-  money: number;
+  ryou: number;
   reputation: number;
   storeLevel: number;
   visitors: number;

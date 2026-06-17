@@ -19,7 +19,7 @@ import type {
   UpgradeId,
 } from './types';
 
-const SAVE_KEY = 'janso-story-rpg-save-v1';
+const SAVE_KEY = 'janso-story-rpg-save-v2';
 
 const defaultRecords: RpgRecords = {
   matches: 0,
@@ -30,7 +30,7 @@ const defaultRecords: RpgRecords = {
 
 const createDefaultState = (): RpgPersistentState => ({
   storyStage: 'tutorial_before',
-  money: 12000,
+  ryou: 0,
   reputation: 3,
   storeLevel: 1,
   visitors: 8,
@@ -40,10 +40,10 @@ const createDefaultState = (): RpgPersistentState => ({
   facing: 'up',
   records: defaultRecords,
   upgrades: {
-    extra_table: false,
+    bulb_repair: false,
+    wifi: false,
+    table_clean: false,
     signboard: false,
-    drink_menu: false,
-    event_day: false,
   },
   currentMatch: null,
   lastSavedAt: null,
@@ -62,7 +62,7 @@ const readSavedState = (): Partial<RpgPersistentState> | null => {
 
 const toPersistentState = (state: RpgPersistentState): RpgPersistentState => ({
   storyStage: state.storyStage,
-  money: state.money,
+  ryou: state.ryou,
   reputation: state.reputation,
   storeLevel: state.storeLevel,
   visitors: state.visitors,
@@ -148,7 +148,7 @@ export const useRpgStore = create<RpgStore>((set, get) => ({
   dialogue: null,
   statusMessage: savedState
     ? '保存データを読み込みました。'
-    : '健太に連れられ、初めて白龍亭へ来ました。',
+    : '健太に連れられ、初めて三元楼へ来ました。',
   hasSave: Boolean(savedState),
 
   movePlayer: (direction) => {
@@ -211,7 +211,7 @@ export const useRpgStore = create<RpgStore>((set, get) => ({
       npcStates: createStageNpcRuntimeStates('tutorial_match_started'),
       currentMatch: {
         id: 'tutorial',
-        title: '白龍亭 初めての一局',
+        title: '三元楼 初めての一局',
         opponentNames: ['健太', 'タケ爺', '黒川'],
       },
       dialogue: null,
@@ -236,7 +236,7 @@ export const useRpgStore = create<RpgStore>((set, get) => ({
 
     let nextStage: StoryStage = state.storyStage;
     let nextMessage = result.victory
-      ? '初回対局に勝利。白龍亭の空気が少し変わりました。'
+      ? '初回対局に勝利。三元楼の空気が少し変わりました。'
       : '初回対局を終えました。悔しさも、次の一局への材料です。';
     let nextUnlocked = state.unlockedCharacters;
     let regularsGain = result.victory ? 1 : 0;
@@ -245,7 +245,7 @@ export const useRpgStore = create<RpgStore>((set, get) => ({
       if (result.victory) {
         nextStage = 'shop_entrusted';
         nextUnlocked = unlockCharacters(state.unlockedCharacters, ['regular']);
-        nextMessage = '勝利の直後、黒川が奥で倒れ込みました。美咲は白龍亭を一時的に任されます。';
+        nextMessage = '対局終了。黒川が奥へ引き、美咲は三元楼を任されます。';
       } else {
         nextStage = 'tutorial_after';
         regularsGain = 0;
@@ -260,7 +260,7 @@ export const useRpgStore = create<RpgStore>((set, get) => ({
     set({
       storyStage: nextStage,
       npcStates: createStageNpcRuntimeStates(nextStage),
-      money: Math.max(0, state.money + result.earnedMoney),
+      ryou: Math.max(0, state.ryou + result.earnedMoney),
       reputation: Math.max(0, state.reputation + result.reputationChange),
       visitors: Math.max(0, state.visitors + (result.victory ? 4 : 1)),
       regulars: Math.max(0, state.regulars + regularsGain),
@@ -285,8 +285,8 @@ export const useRpgStore = create<RpgStore>((set, get) => ({
       return;
     }
 
-    if (state.money < upgrade.cost) {
-      set({ statusMessage: '資金が足りません。まずは対局で稼ぎましょう。' });
+    if (state.ryou < upgrade.cost) {
+      set({ statusMessage: '両が足りません。まずは対局で稼ぎましょう。' });
       return;
     }
 
@@ -296,19 +296,19 @@ export const useRpgStore = create<RpgStore>((set, get) => ({
     };
 
     const purchasedCount = Object.values(nextUpgrades).filter(Boolean).length;
-    const nextStage = upgradeId === 'event_day' && state.storyStage === 'shop_entrusted'
+    const nextStage = upgradeId === 'signboard' && state.storyStage === 'shop_entrusted'
       ? 'rival_appeared'
       : state.storyStage;
 
     set({
       upgrades: nextUpgrades,
-      money: state.money - upgrade.cost,
+      ryou: state.ryou - upgrade.cost,
       reputation: state.reputation + upgrade.reputation,
       visitors: state.visitors + upgrade.visitors,
       storeLevel: Math.max(state.storeLevel, 1 + Math.floor(purchasedCount / 2)),
       storyStage: nextStage,
       npcStates: createStageNpcRuntimeStates(nextStage),
-      unlockedCharacters: upgradeId === 'event_day'
+      unlockedCharacters: upgradeId === 'signboard'
         ? unlockCharacters(state.unlockedCharacters, ['reina'])
         : state.unlockedCharacters,
       statusMessage: `${upgrade.label}を導入しました。`,

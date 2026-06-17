@@ -60,6 +60,14 @@ const KENTA_FRAME_NUMBERS: Record<Direction, number[]> = {
   left: [13, 14, 15, 16],
 };
 
+// 黒川（店主）: 美咲・健太と同じ 4方向×4コマ = 16枚 方式
+const KUROKAWA_FRAME_NUMBERS: Record<Direction, number[]> = {
+  up: [1, 2, 3, 4],
+  right: [5, 6, 7, 8],
+  down: [9, 10, 11, 12],
+  left: [13, 14, 15, 16],
+};
+
 const MOVEMENT_KEYS: Record<string, Direction> = {
   arrowup: 'up',
   w: 'up',
@@ -82,6 +90,16 @@ const getKentaFrameUrl = (facing: Direction, frameIndex: number) => {
   const frameNumber = frameNumbers[frameIndex % frameNumbers.length];
   return `/rpg/kenta-walk-frames/edited-photo_${frameNumber}.png`;
 };
+
+const getKurakawaFrameUrl = (facing: Direction, frameIndex: number) => {
+  const frameNumbers = KUROKAWA_FRAME_NUMBERS[facing];
+  const frameNumber = frameNumbers[frameIndex % frameNumbers.length];
+  return `/rpg/kurokawa-walk-frames/edited-photo_${frameNumber}.png`;
+};
+
+// ポートレート画像URL取得
+const getPortraitUrl = (npcId: string) =>
+  `/rpg/portraits/${npcId}-normal.png`;
 
 const PixelSprite: React.FC<SpriteProps> = ({
   name,
@@ -163,7 +181,7 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
   const heldDirectionRef = useRef<Direction | null>(null);
   const {
     storyStage,
-    money,
+    ryou,
     reputation,
     storeLevel,
     visitors,
@@ -387,7 +405,7 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
     <div className="rpg-shell">
       <header className="rpg-topbar">
         <div className="rpg-title-block">
-          <span className="rpg-kicker">白龍亭</span>
+          <span className="rpg-kicker">三元楼</span>
           <h1>雀荘物語</h1>
           <p>{STORY_LABELS[storyStage]}</p>
         </div>
@@ -418,10 +436,12 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
               }}
             >
               {npcStates.map((npc) => {
-                // 健太だけ画像ベーススプライト（美咲と同じ16枚PNG方式）
+                // 健太・黒川は画像ベーススプライト（美咲と同じ16枚PNG方式）
                 const npcFrameUrl = npc.id === 'kenta'
                   ? getKentaFrameUrl(npc.facing, npc.moving ? npcFrameIndex : 0)
-                  : null;
+                  : npc.id === 'kurokawa'
+                    ? getKurakawaFrameUrl(npc.facing, npc.moving ? npcFrameIndex : 0)
+                    : null;
                 return (
                   <PixelSprite
                     key={npc.id}
@@ -523,7 +543,7 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
 
         <aside className="rpg-side-panel">
           <section className="rpg-panel-section">
-            <h2>白龍亭仕様</h2>
+            <h2>三元楼仕様</h2>
             <div className="rpg-record-grid">
               <span>マップID</span><strong>{HAKURYUTEI_MAP_SPEC.map_id}</strong>
               <span>サイズ</span><strong>{HAKURYUTEI_MAP_SPEC.size.width}x{HAKURYUTEI_MAP_SPEC.size.height}</strong>
@@ -616,7 +636,7 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
           <section className="rpg-panel-section">
             <h2>経営状況</h2>
             <div className="rpg-stats-grid">
-              <StatPill icon={<Coins size={16} />} label="所持金" value={`${money.toLocaleString()}円`} />
+              <StatPill icon={<Coins size={16} />} label="両" value={`${ryou.toLocaleString()}両`} />
               <StatPill icon={<Star size={16} />} label="評判" value={reputation} />
               <StatPill icon={<Building2 size={16} />} label="店舗Lv" value={storeLevel} />
               <StatPill icon={<Users size={16} />} label="来客/常連" value={`${visitors}/${regulars}`} />
@@ -650,7 +670,7 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
                       <strong>{upgrade.label}</strong>
                       <small>{upgrade.description}</small>
                     </span>
-                    <b>{purchased ? '導入済' : `${upgrade.cost.toLocaleString()}円`}</b>
+                    <b>{purchased ? '導入済' : `${upgrade.cost.toLocaleString()}両`}</b>
                   </button>
                 );
               })}
@@ -675,6 +695,13 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
       {dialogue && (
         <div className="rpg-dialogue-backdrop">
           <div className="rpg-dialogue-window">
+            <img
+              key={dialogue.npcId}
+              className="rpg-dialogue-portrait"
+              src={getPortraitUrl(dialogue.npcId)}
+              alt={dialogue.characterName}
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
             <div className="rpg-dialogue-name">{dialogue.characterName}</div>
             <p>{dialogue.lines[dialogue.currentLine]}</p>
             <button type="button" onClick={advanceDialogue}>
