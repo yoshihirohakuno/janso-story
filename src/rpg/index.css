@@ -192,7 +192,7 @@
   filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.4));
 }
 
-/* 画像ベースNPC（健太など）: プレイヤーと同じサイズ・絶対配置 */
+/* 画像ベースNPC（健太・黒川など）: プレイヤーと同じサイズ・絶対配置 */
 .rpg-sprite.is-image-npc {
   position: absolute;
   z-index: 11;
@@ -202,6 +202,8 @@
   overflow: visible;
   justify-self: auto;
   align-self: auto;
+  /* スムーズ移動アニメーション（NPC移動周期380msより少し短く） */
+  transition: left 360ms linear, top 360ms linear;
 }
 
 /* 画像NPCのsprite-frame-imageはボトム基準で表示 */
@@ -214,6 +216,14 @@
   object-position: center bottom;
   image-rendering: pixelated;
   user-select: none;
+}
+
+/* 黒川（店主）: カウンター越し表示のため小さめ・奥寄りz-index */
+.rpg-sprite.is-image-npc.sprite-owner {
+  z-index: 9;
+  width: clamp(52px, 8%, 96px);
+  height: clamp(70px, 14%, 130px);
+  transition: none; /* 黒川は動かない */
 }
 
 /* 画像NPC用シャドウ */
@@ -709,6 +719,13 @@
   gap: 3px;
   opacity: 0.92;
   flex: 0 0 auto;
+}
+
+/* PC（マウス操作）では十字キー不要 */
+@media (hover: hover) and (pointer: fine) {
+  .rpg-dpad {
+    display: none;
+  }
 }
 
 .rpg-dpad button {
