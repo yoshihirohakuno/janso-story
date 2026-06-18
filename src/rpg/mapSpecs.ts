@@ -801,9 +801,19 @@ const rectContains = (position: Position, rect: GridRect) => (
   position.y < rect.y + rect.height
 );
 
-export const isHakuryuteiBlocked = (position: Position) => (
-  HAKURYUTEI_MAP_SPEC.collision_areas.some((area) => rectContains(position, area))
-);
+export const isHakuryuteiBlocked = (position: Position, upgrades?: Record<string, boolean>, stage?: StoryStage) => {
+  return HAKURYUTEI_MAP_SPEC.collision_areas.some((area) => {
+    // チュートリアル中は4卓すべて存在し、衝突判定が有効
+    const isTutorial = stage === 'tutorial_before' || stage === 'tutorial_match_started' || stage === 'tutorial_after';
+    
+    if (!isTutorial && upgrades) {
+      if (area.id === 'table_04' && !upgrades.table_add_2) return false;
+      if (area.id === 'table_01' && !upgrades.table_add_3) return false;
+      if (area.id === 'table_02' && !upgrades.table_add_4) return false;
+    }
+    return rectContains(position, area);
+  });
+};
 
 export const getHakuryuteiNavigationArea = (position: Position) => (
   HAKURYUTEI_MAP_SPEC.navigation.find((area) => rectContains(position, area)) ?? null

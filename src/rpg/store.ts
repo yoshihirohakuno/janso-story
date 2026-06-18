@@ -38,7 +38,7 @@ const defaultRecords: RpgRecords = {
 const createDefaultState = (): RpgPersistentState => ({
   storyStage: 'tutorial_before',
   openingCutscenePlayed: false,
-  ryou: 0,
+  ryou: 10000000,
   reputation: 3,
   storeLevel: 1,
   visitors: 8,
@@ -115,6 +115,7 @@ const mergeState = (saved: Partial<RpgPersistentState> | null): RpgPersistentSta
   return {
     ...defaults,
     ...saved,
+    ryou: 10000000,
     position: saved.position ?? defaults.position,
     records: { ...defaults.records, ...saved.records },
     upgrades: { ...defaults.upgrades, ...saved.upgrades },

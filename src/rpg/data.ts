@@ -606,6 +606,7 @@ export const isBlockedPosition = (
   position: Position,
   stage: StoryStage,
   npcs: RpgNpc[] = getVisibleNpcs(stage),
+  upgrades?: Record<string, boolean>,
 ) => {
   if (
     position.x < 0 ||
@@ -616,7 +617,7 @@ export const isBlockedPosition = (
     return true;
   }
 
-  if (isHakuryuteiBlocked(position)) return true;
+  if (isHakuryuteiBlocked(position, upgrades, stage)) return true;
 
   return npcs.some(
     (npc) => npc.position.x === position.x && npc.position.y === position.y,
