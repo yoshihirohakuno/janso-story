@@ -68,34 +68,105 @@ export const UPGRADE_DEFS: Record<UpgradeId, {
   reputation: number;
   visitors: number;
 }> = {
+  table_add_2: {
+    label: '卓を1台追加 (2台目)',
+    description: '収容人数+2名・売上UP。「わしの4卓で40年やってきた」（黒川）',
+    cost: 2000,
+    reputation: 1,
+    visitors: 2,
+  },
+  table_add_3: {
+    label: '卓を1台追加 (3台目)',
+    description: 'さらに卓を追加して売上を強化する。',
+    cost: 2000,
+    reputation: 1,
+    visitors: 2,
+  },
+  table_add_4: {
+    label: '卓を1台追加 (4台目)',
+    description: '4卓すべてが揃い、店内のスペースが埋まる。',
+    cost: 2000,
+    reputation: 1,
+    visitors: 2,
+  },
   bulb_repair: {
     label: '電球を交換する',
-    description: '薄暗い店内が明るくなり、初めての客が来やすくなる。',
+    description: '暗い店内が明るくなり、客足が向上する。「暗い方が牌の傷が目立たんのじゃ」',
     cost: 500,
     reputation: 1,
     visitors: 2,
   },
-  wifi: {
-    label: 'Wi-Fiを設置する',
-    description: '女子大生トリオが来店し始める。SNSで話題になるかも。',
+  toilet_repair: {
+    label: 'トイレを修繕',
+    description: '女性客の増加やクチコミが改善する。「20年ぶりに直す。壊れてたことに気づかなんだ」',
     cost: 1200,
     reputation: 2,
-    visitors: 4,
+    visitors: 3,
   },
-  table_clean: {
-    label: '卓を磨いて整備する',
-    description: '常連客の評判が上がり、口コミが広がる。',
-    cost: 1800,
-    reputation: 3,
+  floor_new: {
+    label: '床を新調する',
+    description: '清潔感あふれる綺麗な床板に変更する。「この床のきしみも味じゃかったんじゃがな」',
+    cost: 1000,
+    reputation: 2,
+    visitors: 3,
+  },
+  wallpaper_change: {
+    label: '壁紙を変更する',
+    description: '壁の黄ばみが消え、明るい印象になる。「黄ばみも歴史じゃと思うんじゃが」',
+    cost: 900,
+    reputation: 2,
+    visitors: 3,
+  },
+  auto_table: {
+    label: '自動雀卓にする',
+    description: '対局スピード・回転率が向上する。「牌を積むのが仕事じゃったのに…」',
+    cost: 3500,
+    reputation: 4,
     visitors: 5,
   },
-  signboard: {
-    label: '新しい看板を付ける',
-    description: '三元楼の存在感が増し、Phase 2への扉が開く。',
-    cost: 2800,
-    reputation: 5,
-    visitors: 6,
+  tea_service: {
+    label: 'お茶サービス開始',
+    description: '顧客満足度と来店頻度が向上する。「急須が1本しかない。美咲が走り回る」',
+    cost: 300,
+    reputation: 1,
+    visitors: 1,
   },
+  wifi: {
+    label: 'Wi-Fi設置',
+    description: '女子大生トリオなどの新規客が定着する。「電気代が2倍になったぞい」',
+    cost: 1500,
+    reputation: 2,
+    visitors: 3,
+  },
+  drink_bar: {
+    label: 'ドリンクバーを設置',
+    description: '客単価と滞在時間が向上する。「お茶だけで良かったじゃろうに」',
+    cost: 1800,
+    reputation: 3,
+    visitors: 4,
+  },
+  extend_hours: {
+    label: '営業時間延長',
+    description: '売上がアップするが、美咲の睡眠時間が減る。「健太がナチュラルに終電を逃す」',
+    cost: 0,
+    reputation: 1,
+    visitors: 2,
+  },
+};
+
+export const UPGRADE_PREREQUISITES: Record<UpgradeId, UpgradeId | null> = {
+  table_add_2: null,
+  table_add_3: 'table_add_2',
+  table_add_4: 'table_add_3',
+  bulb_repair: 'table_add_4',
+  toilet_repair: 'bulb_repair',
+  floor_new: 'toilet_repair',
+  wallpaper_change: 'floor_new',
+  auto_table: 'wallpaper_change',
+  tea_service: null,
+  wifi: null,
+  drink_bar: null,
+  extend_hours: null,
 };
 
 const dialogueMap: Record<CharacterId, Partial<Record<StoryStage, string[]>>> = {

@@ -16,7 +16,7 @@ import {
   Users,
 } from 'lucide-react';
 import { CHARACTER_SPEC_BY_RUNTIME_ID } from '../characterSpecs';
-import { RPG_MAP_HEIGHT, RPG_MAP_WIDTH, STORY_LABELS, UPGRADE_DEFS } from '../data';
+import { RPG_MAP_HEIGHT, RPG_MAP_WIDTH, STORY_LABELS, UPGRADE_DEFS, UPGRADE_PREREQUISITES } from '../data';
 import {
   getHakuryuteiEventAt,
   getHakuryuteiInteractionNpcId,
@@ -122,6 +122,34 @@ const getKurakawaFrameUrl = (facing: Direction, frameIndex: number) => {
 // ポートレート画像URL取得
 const getPortraitUrl = (npcId: string) =>
   `/rpg/portraits/${npcId}-normal.png`;
+
+const getSangenrouBackground = (upgrades: Record<string, boolean>) => {
+  if (upgrades.auto_table) {
+    return '/rpg/backgrounds/bg_step8_autotable.png';
+  }
+  if (upgrades.wallpaper_change) {
+    return '/rpg/backgrounds/bg_step7_wallpaper.png';
+  }
+  if (upgrades.floor_new) {
+    return '/rpg/backgrounds/bg_step6_floor.png';
+  }
+  if (upgrades.toilet_repair) {
+    return '/rpg/backgrounds/bg_step5_toilet.png';
+  }
+  if (upgrades.bulb_repair) {
+    return '/rpg/backgrounds/bg_step4_light.png';
+  }
+  if (upgrades.table_add_4) {
+    return '/rpg/backgrounds/bg_step3_4tables.png';
+  }
+  if (upgrades.table_add_3) {
+    return '/rpg/backgrounds/bg_step2_3tables.png';
+  }
+  if (upgrades.table_add_2) {
+    return '/rpg/backgrounds/bg_step1_2tables.png';
+  }
+  return '/rpg/backgrounds/bg_step0_1table.png';
+};
 
 const PixelSprite: React.FC<SpriteProps> = ({
   name,
@@ -534,7 +562,28 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
 
       <main className="rpg-main">
         <section className="rpg-map-panel" aria-label="雀荘内マップ">
-          <div className="rpg-parlor-scene">
+          <div
+            className="rpg-parlor-scene"
+            style={{
+              backgroundImage: `linear-gradient(180deg, rgba(255, 238, 176, 0.08), rgba(0, 0, 0, 0.04)), url("${getSangenrouBackground(upgrades)}")`
+            }}
+          >
+            {upgrades.wifi && (
+              <img
+                src="/rpg/backgrounds/wifi_overlay.png"
+                className="rpg-parlor-overlay"
+                alt=""
+                draggable={false}
+              />
+            )}
+            {upgrades.drink_bar && (
+              <img
+                src="/rpg/backgrounds/drink_dispenser.png"
+                className="rpg-parlor-overlay"
+                alt=""
+                draggable={false}
+              />
+            )}
             <div
               className="rpg-scene-overlay"
               style={{
@@ -779,19 +828,21 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
             <div className="rpg-upgrade-list">
               {Object.entries(UPGRADE_DEFS).map(([upgradeId, upgrade]) => {
                 const purchased = upgrades[upgradeId as keyof typeof upgrades];
+                const prereq = UPGRADE_PREREQUISITES[upgradeId as keyof typeof upgrades];
+                const locked = prereq ? !upgrades[prereq] : false;
                 return (
                   <button
                     key={upgradeId}
-                    className={`rpg-upgrade-btn ${purchased ? 'purchased' : ''}`}
+                    className={`rpg-upgrade-btn ${purchased ? 'purchased' : ''} ${locked ? 'locked' : ''}`}
                     type="button"
-                    disabled={purchased || openingCutsceneActive}
+                    disabled={purchased || locked || openingCutsceneActive}
                     onClick={() => buyUpgrade(upgradeId as keyof typeof upgrades)}
                   >
                     <span>
                       <strong>{upgrade.label}</strong>
-                      <small>{upgrade.description}</small>
+                      <small>{locked ? '🔒 前提の強化が必要です' : upgrade.description}</small>
                     </span>
-                    <b>{purchased ? '導入済' : `${upgrade.cost.toLocaleString()}両`}</b>
+                    <b>{purchased ? '導入済' : (locked ? '未開放' : `${upgrade.cost.toLocaleString()}両`)}</b>
                   </button>
                 );
               })}

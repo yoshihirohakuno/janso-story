@@ -10,6 +10,7 @@ import {
   getPostMatchScene10Dialogue,
   isBlockedPosition,
   UPGRADE_DEFS,
+  UPGRADE_PREREQUISITES,
 } from './data';
 import { HAKURYUTEI_MAP_SPEC } from './mapSpecs';
 import type {
@@ -47,10 +48,18 @@ const createDefaultState = (): RpgPersistentState => ({
   facing: 'up',
   records: defaultRecords,
   upgrades: {
+    table_add_2: false,
+    table_add_3: false,
+    table_add_4: false,
     bulb_repair: false,
+    toilet_repair: false,
+    floor_new: false,
+    wallpaper_change: false,
+    auto_table: false,
+    tea_service: false,
     wifi: false,
-    table_clean: false,
-    signboard: false,
+    drink_bar: false,
+    extend_hours: false,
   },
   currentMatch: null,
   lastSavedAt: null,
@@ -416,6 +425,14 @@ export const useRpgStore = create<RpgStore>((set, get) => ({
       return;
     }
 
+    // 前提の順序チェック
+    const prereq = UPGRADE_PREREQUISITES[upgradeId];
+    if (prereq && !state.upgrades[prereq]) {
+      const prereqDef = UPGRADE_DEFS[prereq];
+      set({ statusMessage: `先に「${prereqDef.label}」を導入する必要があります。` });
+      return;
+    }
+
     if (state.ryou < upgrade.cost) {
       set({ statusMessage: '両が足りません。まずは対局で稼ぎましょう。' });
       return;
@@ -427,7 +444,8 @@ export const useRpgStore = create<RpgStore>((set, get) => ({
     };
 
     const purchasedCount = Object.values(nextUpgrades).filter(Boolean).length;
-    const nextStage = upgradeId === 'signboard' && state.storyStage === 'shop_entrusted'
+    // 自動雀卓（auto_table）の導入で次の段階（rival_appeared）に進む
+    const nextStage = upgradeId === 'auto_table' && state.storyStage === 'shop_entrusted'
       ? 'rival_appeared'
       : state.storyStage;
 
@@ -439,7 +457,7 @@ export const useRpgStore = create<RpgStore>((set, get) => ({
       storeLevel: Math.max(state.storeLevel, 1 + Math.floor(purchasedCount / 2)),
       storyStage: nextStage,
       npcStates: createStageNpcRuntimeStates(nextStage),
-      unlockedCharacters: upgradeId === 'signboard'
+      unlockedCharacters: upgradeId === 'auto_table'
         ? unlockCharacters(state.unlockedCharacters, ['reina'])
         : state.unlockedCharacters,
       statusMessage: `${upgrade.label}を導入しました。`,

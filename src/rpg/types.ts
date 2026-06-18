@@ -35,7 +35,19 @@ export type StoryStage =
 
 export type CharacterId = 'misaki' | 'kenta' | 'kurokawa' | 'takeji' | 'reina' | 'regular';
 
-export type UpgradeId = 'bulb_repair' | 'wifi' | 'table_clean' | 'signboard';
+export type UpgradeId =
+  | 'table_add_2'
+  | 'table_add_3'
+  | 'table_add_4'
+  | 'bulb_repair'
+  | 'toilet_repair'
+  | 'floor_new'
+  | 'wallpaper_change'
+  | 'auto_table'
+  | 'tea_service'
+  | 'wifi'
+  | 'drink_bar'
+  | 'extend_hours';
 
 export interface Position {
   x: number;
