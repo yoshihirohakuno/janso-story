@@ -143,6 +143,7 @@ const unlockCharacters = (current: CharacterId[], additions: CharacterId[]) => (
 interface RpgStore extends RpgPersistentState {
   npcStates: RpgNpcRuntimeState[];
   dialogue: DialogueState | null;
+  shopOpen: boolean;
   statusMessage: string;
   hasSave: boolean;
   movePlayer: (direction: Direction) => boolean;
@@ -151,6 +152,8 @@ interface RpgStore extends RpgPersistentState {
   advanceDialogue: () => void;
   selectDialogueChoice: (choiceIndex: number) => void;
   closeDialogue: () => void;
+  openShop: () => void;
+  closeShop: () => void;
   startTutorialMatch: () => void;
   applyMatchResult: (result: RpgMatchResult) => void;
   buyUpgrade: (upgradeId: UpgradeId) => void;
@@ -170,6 +173,7 @@ export const useRpgStore = create<RpgStore>((set, get) => ({
       : npc
   )),
   dialogue: null,
+  shopOpen: false,
   statusMessage: savedState
     ? '保存データを読み込みました。'
     : '健太に連れられ、初めて三元楼へ来ました。',
@@ -177,19 +181,63 @@ export const useRpgStore = create<RpgStore>((set, get) => ({
 
   movePlayer: (direction) => {
     const state = get();
-    const nextPosition = getNextPosition(state.position, direction);
+    let nextPosition = getNextPosition(state.position, direction);
+    let finalDirection = direction;
 
-    if (isBlockedPosition(nextPosition, state.storyStage, state.npcStates)) {
-      set({
-        facing: direction,
-        statusMessage: 'これ以上は進めません。',
-      });
-      return false;
+    if (isBlockedPosition(nextPosition, state.storyStage, state.npcStates, state.upgrades)) {
+      // Corner sliding logic
+      let slideDir: Direction | null = null;
+      if (direction === 'up' || direction === 'down') {
+        const dy = direction === 'up' ? -1 : 1;
+        const leftPos = { x: state.position.x - 1, y: state.position.y };
+        const leftDiag = { x: state.position.x - 1, y: state.position.y + dy };
+        const rightPos = { x: state.position.x + 1, y: state.position.y };
+        const rightDiag = { x: state.position.x + 1, y: state.position.y + dy };
+
+        const leftOpen = !isBlockedPosition(leftPos, state.storyStage, state.npcStates, state.upgrades) &&
+                          !isBlockedPosition(leftDiag, state.storyStage, state.npcStates, state.upgrades);
+        const rightOpen = !isBlockedPosition(rightPos, state.storyStage, state.npcStates, state.upgrades) &&
+                           !isBlockedPosition(rightDiag, state.storyStage, state.npcStates, state.upgrades);
+
+        if (leftOpen && !rightOpen) {
+          slideDir = 'left';
+        } else if (rightOpen && !leftOpen) {
+          slideDir = 'right';
+        }
+      } else if (direction === 'left' || direction === 'right') {
+        const dx = direction === 'left' ? -1 : 1;
+        const upPos = { x: state.position.x, y: state.position.y - 1 };
+        const upDiag = { x: state.position.x + dx, y: state.position.y - 1 };
+        const downPos = { x: state.position.x, y: state.position.y + 1 };
+        const downDiag = { x: state.position.x + dx, y: state.position.y + 1 };
+
+        const upOpen = !isBlockedPosition(upPos, state.storyStage, state.npcStates, state.upgrades) &&
+                        !isBlockedPosition(upDiag, state.storyStage, state.npcStates, state.upgrades);
+        const downOpen = !isBlockedPosition(downPos, state.storyStage, state.npcStates, state.upgrades) &&
+                          !isBlockedPosition(downDiag, state.storyStage, state.npcStates, state.upgrades);
+
+        if (upOpen && !downOpen) {
+          slideDir = 'up';
+        } else if (downOpen && !upOpen) {
+          slideDir = 'down';
+        }
+      }
+
+      if (slideDir) {
+        nextPosition = getNextPosition(state.position, slideDir);
+        finalDirection = slideDir;
+      } else {
+        set({
+          facing: direction,
+          statusMessage: 'これ以上は進めません。',
+        });
+        return false;
+      }
     }
 
     set({
       position: nextPosition,
-      facing: direction,
+      facing: finalDirection,
       statusMessage: '',
     });
     return true;
@@ -232,7 +280,18 @@ export const useRpgStore = create<RpgStore>((set, get) => ({
   },
 
   startDialogue: (npcId, characterName) => {
-    const lines = getDialogues(npcId, get().storyStage);
+    const state = get();
+    // チュートリアル終了後の黒川はショップを開く
+    const isTutorialStage = (
+      state.storyStage === 'tutorial_before' ||
+      state.storyStage === 'tutorial_match_started' ||
+      state.storyStage === 'tutorial_after'
+    );
+    if (npcId === 'kurokawa' && !isTutorialStage) {
+      set({ shopOpen: true, statusMessage: '' });
+      return;
+    }
+    const lines = getDialogues(npcId, state.storyStage);
     set({
       dialogue: {
         npcId,
@@ -341,6 +400,9 @@ export const useRpgStore = create<RpgStore>((set, get) => ({
   closeDialogue: () => {
     set({ dialogue: null });
   },
+
+  openShop: () => set({ shopOpen: true }),
+  closeShop: () => set({ shopOpen: false }),
 
   startTutorialMatch: () => {
     set({
@@ -546,7 +608,7 @@ export const useRpgStore = create<RpgStore>((set, get) => ({
           other.position.y === nextPosition.y,
       );
 
-      if (blockedByPlayer || blockedByNpc || isBlockedPosition(nextPosition, state.storyStage, state.npcStates.filter((other) => other.id !== npc.id))) {
+      if (blockedByPlayer || blockedByNpc || isBlockedPosition(nextPosition, state.storyStage, state.npcStates.filter((other) => other.id !== npc.id), state.upgrades)) {
         return {
           ...npc,
           facing: nextFacing,

@@ -412,7 +412,8 @@ export const HAKURYUTEI_MAP_SPEC: HakuryuteiMapSpec = {
     { id: 'table_02', label: '上段右卓と椅子', x: 16, y: 5, width: 8, height: 6 },
     { id: 'table_03', label: '下段左卓と椅子', x: 6, y: 10, width: 8, height: 7 },
     { id: 'table_04', label: '下段右卓と椅子', x: 16, y: 10, width: 8, height: 7 },
-    { id: 'right_wall', label: '右側壁面と窓', x: 26, y: 0, width: 4, height: 7 },
+    { id: 'top_wall', label: '上側壁面（カウンター後ろ）', x: 8, y: 0, width: 13, height: 2 },
+    { id: 'right_wall', label: '右側壁面・料金表・トイレドア', x: 21, y: 0, width: 9, height: 8 },
     { id: 'bottom_left_wall', label: '入口左側の壁', x: 0, y: 17, width: 11, height: 3 },
     { id: 'bottom_right_wall', label: '入口右側の壁', x: 19, y: 17, width: 11, height: 3 },
   ],
@@ -801,18 +802,47 @@ const rectContains = (position: Position, rect: GridRect) => (
   position.y < rect.y + rect.height
 );
 
+// 背景画像に合わせたアップグレード段階ごとの卓衝突エリア
+// step0: 1台（中央）/ step1: 2台（左右）/ step2: 3台（上左+下左+下右）/ step3: 4台（2×2）
+const TABLE_COLLISION_AREAS_BY_STEP = {
+  step0: [
+    { id: 'table_03', label: '卓と椅子', x: 7, y: 10, width: 7, height: 5 },
+  ],
+  step1: [
+    { id: 'table_03', label: '左卓と椅子', x: 6, y: 10, width: 7, height: 6 },
+    { id: 'table_04', label: '右卓と椅子', x: 17, y: 10, width: 7, height: 6 },
+  ],
+  step2: [
+    { id: 'table_01', label: '上段左卓と椅子', x: 6, y: 6, width: 7, height: 6 },
+    { id: 'table_03', label: '下段左卓と椅子', x: 5, y: 12, width: 8, height: 5 },
+    { id: 'table_04', label: '下段右卓と椅子', x: 16, y: 12, width: 8, height: 5 },
+  ],
+  step3: [
+    { id: 'table_01', label: '上段左卓と椅子', x: 6, y: 6, width: 7, height: 5 },
+    { id: 'table_02', label: '上段右卓と椅子', x: 17, y: 6, width: 7, height: 5 },
+    { id: 'table_03', label: '下段左卓と椅子', x: 5, y: 12, width: 8, height: 5 },
+    { id: 'table_04', label: '下段右卓と椅子', x: 16, y: 12, width: 8, height: 5 },
+  ],
+} as const;
+
+const getTableCollisionAreas = (upgrades?: Record<string, boolean> | null) => {
+  if (!upgrades) return TABLE_COLLISION_AREAS_BY_STEP.step3;
+  if (upgrades.table_add_4) return TABLE_COLLISION_AREAS_BY_STEP.step3;
+  if (upgrades.table_add_3) return TABLE_COLLISION_AREAS_BY_STEP.step2;
+  if (upgrades.table_add_2) return TABLE_COLLISION_AREAS_BY_STEP.step1;
+  return TABLE_COLLISION_AREAS_BY_STEP.step0;
+};
+
 export const isHakuryuteiBlocked = (position: Position, upgrades?: Record<string, boolean>, stage?: StoryStage) => {
-  return HAKURYUTEI_MAP_SPEC.collision_areas.some((area) => {
-    // チュートリアル中は4卓すべて存在し、衝突判定が有効
-    const isTutorial = stage === 'tutorial_before' || stage === 'tutorial_match_started' || stage === 'tutorial_after';
-    
-    if (!isTutorial && upgrades) {
-      if (area.id === 'table_04' && !upgrades.table_add_2) return false;
-      if (area.id === 'table_01' && !upgrades.table_add_3) return false;
-      if (area.id === 'table_02' && !upgrades.table_add_4) return false;
-    }
-    return rectContains(position, area);
-  });
+  const isTutorial = stage === 'tutorial_before' || stage === 'tutorial_match_started' || stage === 'tutorial_after';
+
+  // 固定衝突エリア（卓以外）
+  const nonTableAreas = HAKURYUTEI_MAP_SPEC.collision_areas.filter((a) => !a.id.startsWith('table_'));
+  if (nonTableAreas.some((area) => rectContains(position, area))) return true;
+
+  // 卓衝突エリア（アップグレード段階で変化）
+  const tableAreas = getTableCollisionAreas(isTutorial ? null : upgrades);
+  return tableAreas.some((area) => rectContains(position, area));
 };
 
 export const getHakuryuteiNavigationArea = (position: Position) => (

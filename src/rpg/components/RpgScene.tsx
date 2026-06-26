@@ -16,7 +16,7 @@ import {
   Users,
 } from 'lucide-react';
 import { CHARACTER_SPEC_BY_RUNTIME_ID } from '../characterSpecs';
-import { RPG_MAP_HEIGHT, RPG_MAP_WIDTH, STORY_LABELS, UPGRADE_DEFS, UPGRADE_PREREQUISITES } from '../data';
+import { RPG_MAP_HEIGHT, RPG_MAP_WIDTH, SHOP_FAREWELL_LINES, STORY_LABELS, UPGRADE_DEFS, UPGRADE_PREREQUISITES, UPGRADE_PURCHASE_REACTIONS } from '../data';
 import {
   getHakuryuteiEventAt,
   getHakuryuteiInteractionNpcId,
@@ -78,6 +78,14 @@ const KUROKAWA_FRAME_NUMBERS: Record<Direction, number[]> = {
   left: [13, 14, 15, 16],
 };
 
+// やす（タケ爺）: 2桁ゼロパディング形式
+const TAKEJI_FRAME_NUMBERS: Record<Direction, number[]> = {
+  up: [1, 2, 3, 4],
+  right: [13, 14, 15, 16],
+  down: [9, 10, 11, 12],
+  left: [5, 6, 7, 8],
+};
+
 const MOVEMENT_KEYS: Record<string, Direction> = {
   arrowup: 'up',
   w: 'up',
@@ -117,6 +125,12 @@ const getKurakawaFrameUrl = (facing: Direction, frameIndex: number) => {
   const frameNumbers = KUROKAWA_FRAME_NUMBERS[facing];
   const frameNumber = frameNumbers[frameIndex % frameNumbers.length];
   return `/rpg/kurokawa-walk-frames/edited-photo_${frameNumber}.png`;
+};
+
+const getTakejiFrameUrl = (facing: Direction, frameIndex: number) => {
+  const frameNumbers = TAKEJI_FRAME_NUMBERS[facing];
+  const frameNumber = frameNumbers[frameIndex % frameNumbers.length];
+  return `/rpg/takeji-walk-frames/edited-photo_${String(frameNumber).padStart(2, '0')}.png`;
 };
 
 // ポートレート画像URL取得
@@ -227,10 +241,20 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
   const [openingCutscene, setOpeningCutscene] = useState<OpeningCutsceneStep | null>(null);
   // 健太のフレームアニメーション用（NPC共通のグローバルフレームカウンター）
   const [npcFrameIndex, setNpcFrameIndex] = useState(0);
+
+  // Dialogue Typewriter & Choice Selection States
+  const [displayedText, setDisplayedText] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [selectedChoiceIndex, setSelectedChoiceIndex] = useState(0);
+
+  // ショップの黒川セリフ（購入後・閉店時）
+  const [shopMessage, setShopMessage] = useState<string>('いらっしゃい。何が入り用かね。');
+
   const playerMoveTimerRef = useRef<number | null>(null);
   const playerMovingRef = useRef(false);
   const heldDirectionRef = useRef<Direction | null>(null);
   const openingCutsceneStartedRef = useRef(false);
+  const typewriterIntervalRef = useRef<number | null>(null);
   const {
     storyStage,
     openingCutscenePlayed,
@@ -256,11 +280,73 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
     selectDialogueChoice,
     startTutorialMatch,
     buyUpgrade,
+    shopOpen,
+    closeShop,
     saveGame,
     loadGame,
     resetGame,
     tickNpcMovement,
   } = useRpgStore();
+
+  const activeDialogueLine = dialogue?.speakerLines?.[dialogue.currentLine] ?? null;
+  const dialogueNpcId = activeDialogueLine?.npcId ?? dialogue?.npcId ?? 'kurokawa';
+  const dialogueCharacterName = activeDialogueLine?.characterName ?? dialogue?.characterName ?? '';
+  const dialogueText = activeDialogueLine?.text ?? (dialogue ? dialogue.lines[dialogue.currentLine] : '');
+  const dialogueLineCount = dialogue?.speakerLines?.length ?? dialogue?.lines.length ?? 0;
+
+  const skipTypewriter = useCallback(() => {
+    if (typewriterIntervalRef.current) {
+      window.clearInterval(typewriterIntervalRef.current);
+      typewriterIntervalRef.current = null;
+    }
+    setDisplayedText(dialogueText);
+    setIsTyping(false);
+  }, [dialogueText]);
+
+  useEffect(() => {
+    if (typewriterIntervalRef.current) {
+      window.clearInterval(typewriterIntervalRef.current);
+      typewriterIntervalRef.current = null;
+    }
+
+    if (!dialogue) {
+      setDisplayedText('');
+      setIsTyping(false);
+      return;
+    }
+
+    setDisplayedText('');
+    setIsTyping(true);
+    setSelectedChoiceIndex(0);
+
+    let index = 0;
+    const fullText = dialogueText;
+    if (!fullText) {
+      setDisplayedText('');
+      setIsTyping(false);
+      return;
+    }
+
+    typewriterIntervalRef.current = window.setInterval(() => {
+      index += 1;
+      if (index >= fullText.length) {
+        setDisplayedText(fullText);
+        setIsTyping(false);
+        if (typewriterIntervalRef.current) {
+          window.clearInterval(typewriterIntervalRef.current);
+          typewriterIntervalRef.current = null;
+        }
+      } else {
+        setDisplayedText(fullText.substring(0, index));
+      }
+    }, 25);
+
+    return () => {
+      if (typewriterIntervalRef.current) {
+        window.clearInterval(typewriterIntervalRef.current);
+      }
+    };
+  }, [dialogue, dialogue?.currentLine, dialogueText]);
 
   const openingCutsceneActive = openingCutscene != null;
   const stageLayout = useMemo(() => getHakuryuteiStageLayout(storyStage), [storyStage]);
@@ -363,6 +449,11 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
       playerMovingRef.current = false;
       setPlayerMoving(false);
       playerMoveTimerRef.current = null;
+
+      const nextDir = heldDirectionRef.current;
+      if (nextDir) {
+        moveMisaki(nextDir);
+      }
     }, 230);
   }, [movePlayer]);
 
@@ -426,12 +517,41 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
       }
 
       if (dialogue) {
-        if (key === 'enter' || key === ' ') {
-          event.preventDefault();
-          const activeLine = dialogue.speakerLines?.[dialogue.currentLine];
-          if (!activeLine?.choices) {
-            advanceDialogue();
+        if (isTyping) {
+          if (key === 'enter' || key === ' ') {
+            event.preventDefault();
+            skipTypewriter();
           }
+          return;
+        }
+
+        if (activeDialogueLine?.choices) {
+          const choices = activeDialogueLine.choices;
+          if (key === 'arrowup' || key === 'w') {
+            event.preventDefault();
+            setSelectedChoiceIndex((prev) => (prev - 1 + choices.length) % choices.length);
+            return;
+          }
+          if (key === 'arrowdown' || key === 's') {
+            event.preventDefault();
+            setSelectedChoiceIndex((prev) => (prev + 1) % choices.length);
+            return;
+          }
+          if (key === 'enter' || key === ' ') {
+            event.preventDefault();
+            selectDialogueChoice(selectedChoiceIndex);
+            return;
+          }
+        } else {
+          if (key === 'enter' || key === ' ') {
+            event.preventDefault();
+            advanceDialogue();
+            return;
+          }
+        }
+
+        if (MOVEMENT_KEYS[key]) {
+          event.preventDefault();
         }
         return;
       }
@@ -468,26 +588,16 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('blur', releaseHeldDirection);
     };
-  }, [advanceDialogue, dialogue, moveMisaki, openingCutsceneActive, startDialogue, targetNpc]);
+  }, [
+    advanceDialogue, dialogue, moveMisaki, openingCutsceneActive, startDialogue, targetNpc,
+    isTyping, dialogueText, activeDialogueLine, selectedChoiceIndex, selectDialogueChoice, skipTypewriter
+  ]);
 
   useEffect(() => {
     if (dialogue) {
       heldDirectionRef.current = null;
     }
   }, [dialogue]);
-
-  useEffect(() => {
-    if (openingCutsceneActive) return;
-
-    const timer = window.setInterval(() => {
-      const heldDirection = heldDirectionRef.current;
-      if (heldDirection) {
-        moveMisaki(heldDirection);
-      }
-    }, 36);
-
-    return () => window.clearInterval(timer);
-  }, [moveMisaki, openingCutsceneActive]);
 
   useEffect(() => {
     if (openingCutsceneActive) return;
@@ -530,36 +640,9 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
   };
 
   const renderedPlayerPosition = openingCutscene?.misaki.position ?? playerRenderPosition ?? position;
-  const activeDialogueLine = dialogue?.speakerLines?.[dialogue.currentLine] ?? null;
-  const dialogueNpcId = activeDialogueLine?.npcId ?? dialogue?.npcId ?? 'kurokawa';
-  const dialogueCharacterName = activeDialogueLine?.characterName ?? dialogue?.characterName ?? '';
-  const dialogueText = activeDialogueLine?.text ?? (dialogue ? dialogue.lines[dialogue.currentLine] : '');
-  const dialogueLineCount = dialogue?.speakerLines?.length ?? dialogue?.lines.length ?? 0;
 
   return (
     <div className="rpg-shell">
-      <header className="rpg-topbar">
-        <div className="rpg-title-block">
-          <span className="rpg-kicker">三元楼</span>
-          <h1>雀荘物語</h1>
-          <p>{STORY_LABELS[storyStage]}</p>
-        </div>
-        <div className="rpg-top-actions">
-          <button className="rpg-command-btn" type="button" onClick={saveGame} disabled={openingCutsceneActive}>
-            <Save size={16} />
-            セーブ
-          </button>
-          <button className="rpg-command-btn" type="button" onClick={loadGame} disabled={!hasSave || openingCutsceneActive}>
-            <RotateCcw size={16} />
-            ロード
-          </button>
-          <button className="rpg-command-btn ghost" type="button" onClick={onOpenMahjongLobby} disabled={openingCutsceneActive}>
-            <DoorOpen size={16} />
-            対局ロビー
-          </button>
-        </div>
-      </header>
-
       <main className="rpg-main">
         <section className="rpg-map-panel" aria-label="雀荘内マップ">
           <div
@@ -568,22 +651,6 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
               backgroundImage: `linear-gradient(180deg, rgba(255, 238, 176, 0.08), rgba(0, 0, 0, 0.04)), url("${getSangenrouBackground(upgrades)}")`
             }}
           >
-            {upgrades.wifi && (
-              <img
-                src="/rpg/backgrounds/wifi_overlay.png"
-                className="rpg-parlor-overlay"
-                alt=""
-                draggable={false}
-              />
-            )}
-            {upgrades.drink_bar && (
-              <img
-                src="/rpg/backgrounds/drink_dispenser.png"
-                className="rpg-parlor-overlay"
-                alt=""
-                draggable={false}
-              />
-            )}
             <div
               className="rpg-scene-overlay"
               style={{
@@ -591,6 +658,58 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
                 gridTemplateRows: `repeat(${RPG_MAP_HEIGHT}, 1fr)`,
               }}
             >
+              {upgrades.wifi && (
+                <div
+                  style={{
+                    gridColumn: '7 / span 1',
+                    gridRow: '2 / span 1',
+                    zIndex: 5,
+                    display: 'flex',
+                    alignItems: 'flex-end',
+                    justifyContent: 'center',
+                    pointerEvents: 'none',
+                  }}
+                >
+                  <img
+                    src="/rpg/backgrounds/wifi_overlay.png"
+                    style={{
+                      width: '100%',
+                      height: 'auto',
+                      maxHeight: '100%',
+                      objectFit: 'contain',
+                      imageRendering: 'pixelated',
+                    }}
+                    alt="Wi-Fi"
+                    draggable={false}
+                  />
+                </div>
+              )}
+              {upgrades.drink_bar && (
+                <div
+                  style={{
+                    gridColumn: '18 / span 2',
+                    gridRow: '2 / span 2',
+                    zIndex: 5,
+                    display: 'flex',
+                    alignItems: 'flex-end',
+                    justifyContent: 'center',
+                    pointerEvents: 'none',
+                  }}
+                >
+                  <img
+                    src="/rpg/backgrounds/drink_dispenser.png"
+                    style={{
+                      width: '100%',
+                      height: 'auto',
+                      maxHeight: '100%',
+                      objectFit: 'contain',
+                      imageRendering: 'pixelated',
+                    }}
+                    alt="ドリンクバー"
+                    draggable={false}
+                  />
+                </div>
+              )}
               {npcStates.map((npc) => {
                 const renderedNpc = openingCutscene && npc.id === 'kenta'
                   ? {
@@ -600,12 +719,14 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
                     moving: true,
                   }
                   : npc;
-                // 健太・黒川は画像ベーススプライト（美咲と同じ16枚PNG方式）
+                // 健太・黒川・やすは画像ベーススプライト（美咲と同じ16枚PNG方式）
                 const npcFrameUrl = renderedNpc.id === 'kenta'
                   ? getKentaFrameUrl(renderedNpc.facing, renderedNpc.moving ? npcFrameIndex : 0)
                   : renderedNpc.id === 'kurokawa'
                     ? getKurakawaFrameUrl(renderedNpc.facing, renderedNpc.moving ? npcFrameIndex : 0)
-                    : null;
+                    : renderedNpc.id === 'takeji'
+                      ? getTakejiFrameUrl(renderedNpc.facing, renderedNpc.moving ? npcFrameIndex : 0)
+                      : null;
                 return (
                   <PixelSprite
                     key={renderedNpc.id}
@@ -712,95 +833,11 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
         </section>
 
         <aside className="rpg-side-panel">
-          <section className="rpg-panel-section">
-            <h2>三元楼仕様</h2>
-            <div className="rpg-record-grid">
-              <span>マップID</span><strong>{HAKURYUTEI_MAP_SPEC.map_id}</strong>
-              <span>サイズ</span><strong>{HAKURYUTEI_MAP_SPEC.size.width}x{HAKURYUTEI_MAP_SPEC.size.height}</strong>
-              <span>卓数</span><strong>{HAKURYUTEI_MAP_SPEC.mahjong_tables.length}卓</strong>
-              <span>時代感</span><strong>{HAKURYUTEI_MAP_SPEC.era}</strong>
-              <span>稼働卓</span><strong>{activeTableCount}/{HAKURYUTEI_MAP_SPEC.mahjong_tables.length}</strong>
-              <span>現在地</span><strong>{currentArea?.label ?? '-'}</strong>
-              <span>イベント</span><strong>{currentEvent?.id ?? '-'}</strong>
-            </div>
-            <p className="rpg-spec-note">{stageLayout.mood}</p>
-          </section>
-
-          <section className="rpg-panel-section">
-            <h2>シーン配置</h2>
-            <div className="rpg-chip-list">
-              {stageLayout.active_event_ids.length > 0
-                ? stageLayout.active_event_ids.map((eventId) => (
-                  <span key={eventId} className="rpg-chip">{eventId}</span>
-                ))
-                : <span className="rpg-chip muted">free_scene</span>}
-            </div>
-            <div className="rpg-cast-list">
-              {stageLayout.npc_layouts.map((layout) => {
-                const npc = npcStates.find((candidate) => candidate.id === layout.npc_id);
-                return (
-                  <div key={`${layout.npc_id}-${layout.position.x}-${layout.position.y}`} className="rpg-cast-item">
-                    <strong>{npc?.name ?? layout.npc_id}</strong>
-                    <span>{getZoneLabel(layout.zone)} / {layout.behavior}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-
-          <section className="rpg-panel-section">
-            <h2>{targetNpc ? '注目キャラ' : '主人公仕様'}</h2>
-            <div className="rpg-character-card">
-              <div className="rpg-character-head">
-                <div>
-                  <strong>{focusedName}</strong>
-                  <small>{focusedRole}</small>
-                </div>
-                {focusedSpec && <span className="rpg-character-rank">{focusedSpec.mahjong_style.rank}</span>}
-              </div>
-              <div className="rpg-record-grid">
-                <span>年齢 / 身長</span>
-                <strong>{focusedSpec ? `${focusedSpec.appearance.age} / ${focusedSpec.appearance.height_cm}cm` : '-'}</strong>
-                <span>打ち筋</span>
-                <strong>{focusedSpec?.mahjong_style.archetype ?? targetNpc?.role ?? '-'}</strong>
-                <span>スプライト</span>
-                <strong>
-                  {focusedSpec
-                    ? `${focusedSpec.sprite.sheet.frame_width}x${focusedSpec.sprite.sheet.frame_height} / ${focusedSpec.sprite.sheet.columns}x${focusedSpec.sprite.sheet.rows}`
-                    : '-'}
-                </strong>
-                <span>現在の役割</span>
-                <strong>{focusedLayout?.behavior ?? focusedPresence?.behavior ?? '-'}</strong>
-              </div>
-              {focusedSpec ? (
-                <>
-                  <div className="rpg-color-swatches">
-                    {focusedSpec.appearance.theme_color.map((color) => (
-                      <span
-                        key={color}
-                        className="rpg-color-swatch"
-                        style={{ background: color }}
-                        title={color}
-                      />
-                    ))}
-                  </div>
-                  <div className="rpg-chip-list">
-                    {focusedSpec.portrait.expression_set.map((expression) => (
-                      <span key={expression.id} className="rpg-chip">
-                        {expression.label}
-                      </span>
-                    ))}
-                  </div>
-                  <p className="rpg-spec-note">
-                    {focusedPresence?.purpose ?? focusedSpec.sprite.production_notes[0]}
-                  </p>
-                </>
-              ) : (
-                <p className="rpg-spec-note">
-                  このNPCは汎用常連として扱っています。個別アートより先に、会話と配置の役割を優先しています。
-                </p>
-              )}
-            </div>
+          <section className="rpg-panel-section rpg-panel-section--title">
+            <button className="rpg-command-btn ghost rpg-lobby-btn" type="button" onClick={onOpenMahjongLobby} disabled={openingCutsceneActive}>
+              <DoorOpen size={15} />
+              対局ロビーへ
+            </button>
           </section>
 
           <section className="rpg-panel-section">
@@ -823,37 +860,15 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
             </div>
           </section>
 
-          <section className="rpg-panel-section">
-            <h2>店舗強化</h2>
-            <div className="rpg-upgrade-list">
-              {Object.entries(UPGRADE_DEFS).map(([upgradeId, upgrade]) => {
-                const purchased = upgrades[upgradeId as keyof typeof upgrades];
-                const prereq = UPGRADE_PREREQUISITES[upgradeId as keyof typeof upgrades];
-                const locked = prereq ? !upgrades[prereq] : false;
-                return (
-                  <button
-                    key={upgradeId}
-                    className={`rpg-upgrade-btn ${purchased ? 'purchased' : ''} ${locked ? 'locked' : ''}`}
-                    type="button"
-                    disabled={purchased || locked || openingCutsceneActive}
-                    onClick={() => buyUpgrade(upgradeId as keyof typeof upgrades)}
-                  >
-                    <span>
-                      <strong>{upgrade.label}</strong>
-                      <small>{locked ? '🔒 前提の強化が必要です' : upgrade.description}</small>
-                    </span>
-                    <b>{purchased ? '導入済' : (locked ? '未開放' : `${upgrade.cost.toLocaleString()}両`)}</b>
-                  </button>
-                );
-              })}
+          <section className="rpg-panel-section rpg-panel-section--save">
+            <div className="rpg-save-row">
+              <button className="rpg-command-btn" type="button" onClick={saveGame} disabled={openingCutsceneActive}>
+                <Save size={14} /> セーブ
+              </button>
+              <button className="rpg-command-btn" type="button" onClick={loadGame} disabled={!hasSave || openingCutsceneActive}>
+                <RotateCcw size={14} /> ロード
+              </button>
             </div>
-          </section>
-
-          <section className="rpg-panel-section">
-            <h2>状態</h2>
-            <p className="rpg-status-message">
-              {statusMessage || (currentMatch ? `${currentMatch.title}が進行中です。` : '店内はいつもの牌音に包まれています。')}
-            </p>
             <div className="rpg-save-meta">
               {lastSavedAt ? `最終保存: ${new Date(lastSavedAt).toLocaleString('ja-JP')}` : '未保存'}
             </div>
@@ -866,7 +881,17 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
 
       {dialogue && (
         <div className="rpg-dialogue-backdrop">
-          <div className="rpg-dialogue-window">
+          <div
+            className="rpg-dialogue-window"
+            onClick={(e) => {
+              if ((e.target as HTMLElement).closest('button')) return;
+              if (isTyping) {
+                skipTypewriter();
+              } else if (!activeDialogueLine?.choices) {
+                advanceDialogue();
+              }
+            }}
+          >
             <img
               key={dialogueNpcId}
               className="rpg-dialogue-portrait"
@@ -875,25 +900,107 @@ export const RpgScene: React.FC<RpgSceneProps> = ({ onStartTutorialMatch, onOpen
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
             <div className="rpg-dialogue-name">{dialogueCharacterName}</div>
-            <p>{dialogueText}</p>
+            <p>{displayedText}</p>
             {activeDialogueLine?.choices ? (
-              <div className="rpg-dialogue-choices">
-                {activeDialogueLine.choices.map((choiceText, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    className="rpg-choice-btn"
-                    onClick={() => selectDialogueChoice(idx)}
-                  >
-                    ▶ {choiceText}
-                  </button>
-                ))}
+              <div 
+                className="rpg-dialogue-choices"
+                style={{ visibility: isTyping ? 'hidden' : 'visible' }}
+              >
+                {activeDialogueLine.choices.map((choiceText, idx) => {
+                  const isSelected = idx === selectedChoiceIndex;
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      className={`rpg-choice-btn ${isSelected ? 'selected' : ''}`}
+                      onClick={() => selectDialogueChoice(idx)}
+                      disabled={isTyping}
+                    >
+                      {isSelected ? '▶ ' : '　 '}
+                      {choiceText}
+                    </button>
+                  );
+                })}
               </div>
             ) : (
-              <button type="button" onClick={advanceDialogue}>
+              <button 
+                type="button" 
+                onClick={advanceDialogue}
+                style={{ visibility: isTyping ? 'hidden' : 'visible' }}
+                disabled={isTyping}
+              >
                 {dialogue.currentLine < dialogueLineCount - 1 ? '次へ' : '閉じる'}
               </button>
             )}
+          </div>
+        </div>
+      )}
+
+      {shopOpen && (
+        <div className="rpg-dialogue-backdrop" onClick={() => {
+          setShopMessage('いらっしゃい。何が入り用かね。');
+          closeShop();
+        }}>
+          <div className="rpg-shop-window" onClick={(e) => e.stopPropagation()}>
+            <img
+              className="rpg-dialogue-portrait"
+              src={getPortraitUrl('kurokawa')}
+              alt="黒川"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
+            <div className="rpg-dialogue-name">黒川</div>
+            <p className="rpg-shop-greeting">
+              {shopMessage}
+              <span className="rpg-shop-balance">所持金：{ryou.toLocaleString()}両</span>
+            </p>
+            <div className="rpg-shop-list">
+              {Object.entries(UPGRADE_DEFS).map(([upgradeId, upgrade]) => {
+                const purchased = upgrades[upgradeId as keyof typeof upgrades];
+                const prereq = UPGRADE_PREREQUISITES[upgradeId as keyof typeof upgrades];
+                const locked = prereq ? !upgrades[prereq] : false;
+                const canAfford = ryou >= upgrade.cost;
+                return (
+                  <button
+                    key={upgradeId}
+                    className={`rpg-shop-item ${purchased ? 'purchased' : ''} ${locked ? 'locked' : ''} ${!canAfford && !purchased && !locked ? 'cant-afford' : ''}`}
+                    type="button"
+                    disabled={purchased || locked}
+                    onClick={() => {
+                      const before = useRpgStore.getState().upgrades[upgradeId as keyof typeof upgrades];
+                      buyUpgrade(upgradeId as keyof typeof upgrades);
+                      const after = useRpgStore.getState().upgrades[upgradeId as keyof typeof upgrades];
+                      if (!before && after) {
+                        setShopMessage(UPGRADE_PURCHASE_REACTIONS[upgradeId as keyof typeof upgrades]);
+                      }
+                    }}
+                  >
+                    <span className="rpg-shop-item-left">
+                      <strong>{upgrade.label}</strong>
+                      <small>
+                        {purchased ? '導入済み' : locked ? '🔒 前提の強化が必要' : upgrade.description}
+                      </small>
+                    </span>
+                    <span className={`rpg-shop-item-price ${purchased ? 'purchased' : ''} ${!canAfford && !purchased && !locked ? 'cant-afford' : ''}`}>
+                      {purchased ? '✓' : locked ? '-' : `${upgrade.cost.toLocaleString()}両`}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              type="button"
+              className="rpg-shop-close-btn"
+              onClick={() => {
+                const farewell = SHOP_FAREWELL_LINES[Math.floor(Math.random() * SHOP_FAREWELL_LINES.length)];
+                setShopMessage(farewell);
+                setTimeout(() => {
+                  setShopMessage('いらっしゃい。何が入り用かね。');
+                  closeShop();
+                }, 1400);
+              }}
+            >
+              閉じる
+            </button>
           </div>
         </div>
       )}

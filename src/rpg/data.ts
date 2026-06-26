@@ -154,6 +154,32 @@ export const UPGRADE_DEFS: Record<UpgradeId, {
   },
 };
 
+// 購入後に黒川が言う一言
+export const UPGRADE_PURCHASE_REACTIONS: Record<UpgradeId, string> = {
+  table_add_2: 'わしは4卓で40年やってきたんじゃがな……まあ、客が増えるのは悪いことじゃない。しっかり回してくれ。',
+  table_add_3: 'また増えたか。賑やかになるのはいいことじゃ。卓が埋まるよう、腕を磨け。',
+  table_add_4: 'これで4卓揃ったな。昔のわしに戻ったようで……少し嬉しいわ。頼んだぞ。',
+  bulb_repair: '暗い方が牌の傷が目立たんのじゃがな……まあ、明るくなった方が客も来やすいか。',
+  toilet_repair: '20年ぶりに直すとは……壊れてたことに気づかなんだのはわしも同じじゃ。すまなかった。',
+  floor_new: 'この床のきしみも味じゃかったんじゃがな。……新しい床も、すぐに馴染むもんじゃ。',
+  wallpaper_change: '黄ばみも歴史じゃと思うとったが……確かに、綺麗になると気持ちも変わるもんじゃな。',
+  auto_table: '牌を積むのが仕事じゃったのに……機械か。時代には勝てんな。使いこなしてくれ。',
+  tea_service: '急須が1本しかないんじゃが……美咲、走り回ることになるぞ。体に気をつけてな。',
+  wifi: '電気代が2倍になるぞい。その分、客をしっかり呼び込んでこい。わしも期待しとる。',
+  drink_bar: 'お茶だけで良かったじゃろうに……まあ、客が喜ぶなら認めよう。上手く使え。',
+  extend_hours: '夜遅くまで営業か。体には気をつけろ。三元楼が続いてこそ意味があるんじゃからな。',
+};
+
+// ショップを閉じるときに黒川が言う別れ際の一言（ランダム）
+export const SHOP_FAREWELL_LINES = [
+  'また何かあれば声をかけい。',
+  '三元楼のこと、頼んだぞ。',
+  'しっかり稼いでこい。腕も磨くのを忘れるな。',
+  '困ったことがあれば、いつでも来い。',
+  '客に誠実にな。それがこの店の信条じゃ。',
+  'ゆっくりでいい。焦らず、一歩ずつやっていけ。',
+];
+
 export const UPGRADE_PREREQUISITES: Record<UpgradeId, UpgradeId | null> = {
   table_add_2: null,
   table_add_3: 'table_add_2',
@@ -338,7 +364,7 @@ export const getOpeningLoopDialogue = (): NonNullable<DialogueState['speakerLine
   {
     npcId: 'kurokawa',
     characterName: '黒川',
-    text: 'そうか。……では、もう一度聞こう。経営学部の者よ、この店を継いでくれぬか？',
+    text: '頼む！このボロ雀荘とわしの余生を救ってくれ！……頼むから、この店を継いでくれぬか？',
     choices: ['……考えてみます', 'いえ、無理です'],
   },
 ];
@@ -478,7 +504,7 @@ export const getPostMatchLoopDialogue = (): NonNullable<DialogueState['speakerLi
   {
     npcId: 'kurokawa',
     characterName: '黒川',
-    text: 'そうか。……では、もう一度聞こう。',
+    text: 'なんじゃと！？ 美咲ちゃん、冷たいのう……。健太の彼氏力じゃ頼りにならんのはわかっとるが、そこをなんとか引き受けてくれぬか！',
     choices: ['引き受ける', '断る'],
   },
 ];
